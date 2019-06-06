@@ -78,8 +78,6 @@ class ChatRoomModel extends PureModel {
 
   private readonly _chats = this.state<Chat[]>([]);
 
-  private readonly _text = this.state<string>('');
-
   private readonly _isFocus: boolean;
 
   readonly user: string;
@@ -101,21 +99,22 @@ class ChatRoomModel extends PureModel {
   }
 
   get text(): string {
-    return this._text();
+    return this.textRef.current!.value;
   }
 
-  readonly onTextChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    this._text(e.target.value);
+  set text(value: string) {
+    this.textRef.current!.value = value;
+  }
 
   readonly sendMessage = () => {
     this._root.addChat(`[${this.user}]`, this.text);
-    this._text('');
+    this.text = '';
     this.textRef.current!.focus();
   };
 
   readonly sendLocaslMessage = () => {
     this._onAddChat('$(local)', this.text);
-    this._text('');
+    this.text = '';
     this.textRef.current!.focus();
   };
 
@@ -178,9 +177,7 @@ const ChatView = () => {
 const ChatRoom = () => {
   const {
     chats,
-    text,
     user,
-    onTextChange,
     sendMessage,
     sendLocaslMessage,
     onTextKeyPress,
@@ -193,13 +190,7 @@ const ChatRoom = () => {
     <div>
       <p>Chat Room: {user}</p>
       <div>
-        <input
-          ref={textRef}
-          type='text'
-          value={text}
-          onChange={onTextChange}
-          onKeyPress={onTextKeyPress}
-        />
+        <input ref={textRef} type='text' onKeyPress={onTextKeyPress} />
       </div>
       <div>
         <button onClick={sendMessage}>Send Message (Enter)</button>
