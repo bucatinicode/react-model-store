@@ -23,7 +23,7 @@
     "format": "prettier --write **",
     "test": "jest",
     "coverage": "jest --coverage --collectCoverageFrom=./src/*",
-    "travis-ci": "node scripts/build.js && jest --coverage --collectCoverageFrom=./src/* && cat ./coverage/lcov.info | coveralls",
+    "travis-ci": "jest --coverage --collectCoverageFrom=./src/* && cat ./coverage/lcov.info | coveralls",
     "example": "parcel example/index.html --out-dir build/example",
     "example-tree": "parcel example/tree.html --out-dir build/example-tree",
     "build": "node scripts/build.js"

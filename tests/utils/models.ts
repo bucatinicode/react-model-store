@@ -1,6 +1,5 @@
 import React from 'react';
-import { Model, PureModel, Store } from '../../src/react-model-store';
-import { Accessor } from '../../build/src/react-model-store';
+import { Model, PureModel, Store, Accessor } from '../../src/react-model-store';
 
 export class EmptyModel extends Model {}
 
