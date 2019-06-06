@@ -5,4 +5,4 @@ node_js:
 dist: trusty
 sudo: false
 cache: yarn
-script: yarn coveralls
+script: yarn travis-ci
