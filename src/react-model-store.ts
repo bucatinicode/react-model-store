@@ -222,9 +222,9 @@ export abstract class ModelBase {
   }
 
   protected ref<T>(initialValue?: T): React.RefObject<T> {
-    return this.hook(() =>
-      React.useRef(initialValue === undefined ? null : initialValue)
-    );
+    return arguments.length === 0
+      ? React.createRef()
+      : ({ current: initialValue } as React.RefObject<T>);
   }
 
   protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs> {

@@ -73,12 +73,20 @@ export class RefModel extends Model {
 }
 
 export class IllegalHookMethodModel extends Model {
-  illegalRef<T>(): React.RefObject<T> {
-    return this.ref();
+  constructor() {
+    super();
+    this.illegalHook();
+    this.illegalState();
   }
 
-  illegalState<T>(initialValue: T): Accessor<T> {
-    return this.stateFunc(initialValue);
+  illegalHook(): void {
+    return this.hook(() => {
+      React.useRef();
+    });
+  }
+
+  illegalState(): Accessor<{}> {
+    return this.stateFunc({});
   }
 }
 

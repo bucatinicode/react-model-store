@@ -103,8 +103,8 @@ describe('Hooks Tests', () => {
         <div />
       </Store.Provider>
     );
-    expect(() => model!.illegalRef()).toThrow();
-    expect(() => model!.illegalState({})).toThrow();
+    expect(() => model!.illegalHook()).toThrow();
+    expect(() => model!.illegalState()).toThrow();
     expect(errorSpy).not.toBeCalled();
   });
 });
