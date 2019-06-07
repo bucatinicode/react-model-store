@@ -2,7 +2,7 @@
 /lib/
 /build/
 /coverage/
-/.rts2_cache_*
+/.rts2_cache_*/
 /.vscode/
 /.cache/
 /react-model-store-*

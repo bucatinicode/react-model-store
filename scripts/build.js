@@ -127,7 +127,7 @@ function build() {
 function dispose() {
   delete tsconfig['include'];
   delete tsconfig['exclude'];
-  fs.writeFileSync(tsconfigFile, JSON.stringify(tsconfig, undefined, 2));
+  fs.writeFileSync(tsconfigFile, JSON.stringify(tsconfig, undefined, 2) + '\n');
 }
 
 function write(stream, buf_) {

@@ -1,12 +1,9 @@
 /.*/
 /build/
-/config/
 /coverage/
 /lib/
 /.*ignore
 /LICENSE
 /README.md
-/package.json
-/tsconfig.json
 /yarn.lock
-/package-lock.json
+*.json
