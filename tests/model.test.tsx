@@ -20,13 +20,29 @@ import {
 import { shallow } from 'enzyme';
 
 describe('Model Tests', () => {
+  let errorSpy: jest.SpyInstance | null = null;
+
+  beforeEach(() => {
+    errorSpy!.mockClear();
+  });
+
   afterEach(() => {
     setCurrentMetaAsNull();
+  });
+
+  beforeAll(() => {
+    // tslint:disable-next-line: no-empty
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    errorSpy!.mockRestore();
   });
 
   test('Should throw an error when Model constructor is called.', () => {
     expect(() => new EmptyModel()).toThrow();
     expect(() => new EmptyPureModel()).toThrow();
+    expect(errorSpy).not.toBeCalled();
   });
 
   test('Should succeed in creating instance when current.meta is set.', () => {
@@ -50,6 +66,7 @@ describe('Model Tests', () => {
     expectMetaToHaveModelCount(1);
     expect(pureModel).toBeInstanceOf(PureModel);
     expectModelToBeCreatedTimes(2);
+    expect(errorSpy).not.toBeCalled();
   });
 
   test('Model constructors that have state should be called inside of the body of a function component.', () => {
@@ -64,7 +81,7 @@ describe('Model Tests', () => {
     expectMetaToHaveModelCount(0);
     expectSingleStateModelToBeCreatedTimes(0);
 
-    const mockComponent = jest.fn(() => {
+    const Mock = jest.fn(() => {
       let mountRender = false;
       React.useMemo(() => (mountRender = true), []);
 
@@ -98,18 +115,11 @@ describe('Model Tests', () => {
         deceiveHooks();
       }
       return null;
-    });
+    }) as () => null;
 
-    const Mock = (mockComponent as unknown) as () => React.ReactElement;
-
-    const spy = jest.spyOn(console, 'error');
-    try {
-      shallow(<Mock />);
-      expect(spy).not.toHaveBeenCalled();
-    } finally {
-      spy.mockRestore();
-    }
-    expect(mockComponent).toBeCalledTimes(2);
+    shallow(<Mock />);
+    expect(Mock).toBeCalledTimes(2);
+    expect(errorSpy).not.toBeCalled();
   });
 
   test('Should not call ModelBase constructors directly.', () => {
@@ -118,5 +128,6 @@ describe('Model Tests', () => {
 
     setCurrentMetaAsNew();
     expect(() => new SingleStatePureModel()).toThrow();
+    expect(errorSpy).not.toBeCalled();
   });
 });

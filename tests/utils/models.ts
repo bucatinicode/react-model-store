@@ -13,6 +13,11 @@ export class SingleStatePureModel extends PureModel {
   value = this.state(true);
 }
 
+export class UndefinableStateModel extends Model {
+  value = this.state<number | undefined>(0);
+  valueFunc = this.stateFunc<number | undefined>(0);
+}
+
 class ChildModel {
   grandchild = new SingleStateModel();
   pureGrandchild = new SingleStatePureModel();

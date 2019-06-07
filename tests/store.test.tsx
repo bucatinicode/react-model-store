@@ -6,6 +6,7 @@ import {
   HasInitailValueModel,
   ParentModel,
   MountModel,
+  UndefinableStateModel,
 } from './utils/models';
 import { shallow, mount } from 'enzyme';
 import { findMeta } from './utils/meta';
@@ -61,12 +62,11 @@ describe('Store Tests', () => {
 
   test('<Store.Provider> should provide Store.use() with model instance.', () => {
     const Store = createStore(() => new EmptyModel());
-    const mockComponent = jest.fn(() => {
+    const Mock = jest.fn(() => {
       const model = Store.use();
       expect(model).toBeInstanceOf(EmptyModel);
       return null;
-    });
-    const Mock = mockComponent as () => null;
+    }) as () => null;
     mount(
       <Store.Provider>
         <div>
@@ -74,23 +74,22 @@ describe('Store Tests', () => {
         </div>
       </Store.Provider>
     );
-    expect(mockComponent).toBeCalledTimes(1);
+    expect(Mock).toBeCalledTimes(1);
     expect(errorSpy!).not.toBeCalled();
   });
 
   test('Store.use() should not be provided with model instance without <Store.Provider>.', () => {
     const Store = createStore(() => new EmptyModel());
-    const mockComponent = jest.fn(() => {
+    const Mock = jest.fn(() => {
       expect(() => Store.use()).toThrow();
       return null;
-    });
-    const Mock = mockComponent as () => null;
+    }) as () => null;
     mount(
       <div>
         <Mock />
       </div>
     );
-    expect(mockComponent).toBeCalledTimes(1);
+    expect(Mock).toBeCalledTimes(1);
     expect(errorSpy!).not.toBeCalled();
   });
 
@@ -126,12 +125,11 @@ describe('Store Tests', () => {
     const Store = createStore<HasInitailValueModel, string>(
       initialValue => new HasInitailValueModel(initialValue)
     );
-    const mockComponent = jest.fn(() => {
+    const Mock = jest.fn(() => {
       const model = Store.use();
       expect(model.value).toBe(INITIAL_VALUE);
       return null;
-    });
-    const Mock = mockComponent as () => null;
+    }) as () => null;
     mount(
       <Store.Provider initialValue={INITIAL_VALUE}>
         <div>
@@ -139,7 +137,7 @@ describe('Store Tests', () => {
         </div>
       </Store.Provider>
     );
-    expect(mockComponent).toBeCalledTimes(1);
+    expect(Mock).toBeCalledTimes(1);
     expect(errorSpy!).not.toBeCalled();
   });
 
@@ -226,5 +224,29 @@ describe('Store Tests', () => {
     ];
     testvalues.forEach(args => expectCreateStore(...args));
     expect(errorSpy!).not.toBeCalled();
+  });
+
+  test('State should get and set undefined value.', () => {
+    const Store = createStore(() => new UndefinableStateModel());
+    const Mock = jest.fn(() => {
+      const model = Store.use();
+      let mountRender = false;
+      React.useMemo(() => (mountRender = true), []);
+      if (mountRender) {
+        expect(model.value).toBe(0);
+        model.value = undefined;
+        expect(model.value).toBeUndefined();
+        expect(model.valueFunc()).toBe(0);
+        model.valueFunc(undefined);
+        expect(model.valueFunc()).toBeUndefined();
+      }
+      return null;
+    }) as () => null;
+    mount(
+      <Store.Provider>
+        <Mock />
+      </Store.Provider>
+    );
+    expect(Mock).toBeCalledTimes(2);
   });
 });

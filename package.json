@@ -1,6 +1,6 @@
 {
   "name": "react-model-store",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A simple state management library for React",
   "source": "build/src/react-model-store.ts",
   "main": "lib/react-model-store.js",
@@ -20,6 +20,7 @@
     "typescript"
   ],
   "scripts": {
+    "clean": "rm -rf ./lib ./build ./coverage",
     "format": "prettier --write **",
     "test": "jest",
     "coverage": "jest --coverage --collectCoverageFrom=./src/*",

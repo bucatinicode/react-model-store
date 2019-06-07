@@ -1,8 +1,18 @@
 {
-  "extends": "./config/tsconfig",
   "compilerOptions": {
     "target": "ES5",
     "module": "es2015",
-    "jsx": "react"
+    "jsx": "react",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true
   }
 }

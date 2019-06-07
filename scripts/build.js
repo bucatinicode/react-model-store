@@ -14,11 +14,21 @@ const SOURCE_FILENAME = `${PACKAGE_NAME}.ts`;
 const tsconfig = {
   include: ['build/src'],
   exclude: ['node_modules', 'example', 'src', 'tests', 'scripts'],
-  extends: './config/tsconfig',
   compilerOptions: {
     target: 'ES5',
     module: 'es2015',
     jsx: 'react',
+    declaration: true,
+    declarationMap: true,
+    sourceMap: true,
+    strict: true,
+    noImplicitAny: true,
+    strictNullChecks: true,
+    noUnusedLocals: true,
+    noUnusedParameters: true,
+    noImplicitReturns: true,
+    noFallthroughCasesInSwitch: true,
+    esModuleInterop: true,
   },
 };
 

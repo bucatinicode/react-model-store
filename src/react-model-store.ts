@@ -24,6 +24,12 @@ class Meta {
   readonly hooks: Action[] = [];
   readonly mountEvents: Action[] = [];
   readonly unmountEvents: Action[] = [];
+
+  deceiveHooks(): void {
+    this.hooks.forEach(useHook => {
+      useHook();
+    });
+  }
 }
 
 const metaStore = new Map<{}, Meta>();
@@ -59,20 +65,26 @@ function createEvent<TArgs extends any[]>(): Event<TArgs> {
   const listeners = new Set<Action<TArgs>>();
 
   function event(...args: TArgs): void {
-    listeners.forEach(listener => listener(...args));
+    listeners.forEach(listener => {
+      listener(...args);
+    });
   }
 
   function addListener(model: ModelBase, listener: Action<TArgs>): void {
     if (!model.mounted) {
       throw new Error('Unmounted model objects cannot add event listener');
     }
-    const wrapper = (...args: TArgs) => listener(...args);
+    const wrapper = (...args: TArgs) => {
+      listener(...args);
+    };
     listeners.add(wrapper);
     let removeListeners = removeListenerStore.get(model);
     if (removeListeners === undefined) {
       removeListenerStore.set(model, (removeListeners = []));
     }
-    removeListeners.push(() => listeners.delete(wrapper));
+    removeListeners.push(() => {
+      listeners.delete(wrapper);
+    });
   }
 
   const handler = {};
@@ -121,19 +133,22 @@ function createStateAccessor<T extends any>(
       ? (initialValue as () => T)()
       : initialValue;
   let setState = React.useState(state)[1];
-  meta.hooks.push(() => (setState = React.useState(state)[1]));
+  meta.hooks.push(() => {
+    setState = React.useState(state)[1];
+  });
 
-  const getter = () => {
-    return state;
-  };
+  const getter = () => state;
   const setter = (value: T) => {
     if (meta.mounted) {
       state = value;
       setState(state);
     }
   };
-  const accessor = ((value?: T) =>
-    value === undefined ? getter() : setter(value)) as Accessor<T>;
+
+  function accessor(value?: T): any {
+    return arguments.length === 0 ? getter() : setter(value!);
+  }
+
   if (finalizeRequired) {
     Object.defineProperties(accessor, {
       _finalizeRequired: { value: true },
@@ -154,13 +169,17 @@ export abstract class ModelBase {
       );
     }
     this._meta0 = current.meta;
-    this._meta0.mountEvents.push(() => this.onMount());
+    this._meta0.mountEvents.push(() => {
+      this.onMount();
+    });
     this._meta0.unmountEvents.push(() => {
       this.onUnmount();
       const removeListeners = removeListenerStore.get(this);
       if (removeListeners !== undefined) {
         removeListenerStore.delete(this);
-        removeListeners.forEach(removeListener => removeListener());
+        removeListeners.forEach(removeListener => {
+          removeListener();
+        });
       }
     });
 
@@ -334,7 +353,7 @@ function finalize(meta: Meta): void {
   }
 }
 
-function deceiveHooks<TModel extends {}>(createModel: () => TModel): TModel {
+function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
   const ref = React.useRef<TModel>();
   let meta: Meta;
   if (!ref.current) {
@@ -354,7 +373,7 @@ function deceiveHooks<TModel extends {}>(createModel: () => TModel): TModel {
     ref.current = model;
   } else {
     meta = metaStore.get(ref.current)!;
-    meta.hooks.forEach(useHook => useHook());
+    meta.deceiveHooks();
   }
 
   React.useEffect(() => {
@@ -392,7 +411,7 @@ export function createStore<TModel extends {}, TValue = void>(
   const Context = React.createContext<Box<TModel> | null>(null);
 
   const Provider = (props: StoreProviderProps<TValue>) => {
-    const model = deceiveHooks(() => createModel(props.initialValue));
+    const model = resolveModel(() => createModel(props.initialValue));
     return React.createElement(
       Context.Provider,
       { value: { inner: model } },
