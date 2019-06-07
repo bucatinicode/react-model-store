@@ -447,3 +447,32 @@ export function createStore<TModel extends {}, TValue = void>(
 
   return { Provider, Consumer, use };
 }
+
+export type ModelComponentProps<TProps = {}, TValue = void> = TProps & {
+  initialValue?: TValue;
+};
+
+/**
+ * Create a function component that references a model object created by createModel argument.
+ * It is useful when the model is referenced by only a created component.
+ * @param createModel 
+ * @param render 
+ * @returns A function component
+ */
+export function createModelComponent<
+  TModel extends {},
+  TProps = any,
+  TValue = void
+>(
+  createModel: (initialValue?: TValue) => TModel,
+  render: (
+    model: TModel,
+    props: TProps,
+    context?: any
+  ) => React.ReactElement | null
+): React.FunctionComponent<ModelComponentProps<TProps, TValue>> {
+  return (p: ModelComponentProps<TProps, TValue>, ctx?: any) => {
+    const model = resolveModel(() => createModel(p.initialValue));
+    return render(model, p, ctx);
+  };
+}
