@@ -65,20 +65,26 @@ function createEvent<TArgs extends any[]>(): Event<TArgs> {
   const listeners = new Set<Action<TArgs>>();
 
   function event(...args: TArgs): void {
-    listeners.forEach(listener => listener(...args));
+    listeners.forEach(listener => {
+      listener(...args);
+    });
   }
 
   function addListener(model: ModelBase, listener: Action<TArgs>): void {
     if (!model.mounted) {
       throw new Error('Unmounted model objects cannot add event listener');
     }
-    const wrapper = (...args: TArgs) => listener(...args);
+    const wrapper = (...args: TArgs) => {
+      listener(...args);
+    };
     listeners.add(wrapper);
     let removeListeners = removeListenerStore.get(model);
     if (removeListeners === undefined) {
       removeListenerStore.set(model, (removeListeners = []));
     }
-    removeListeners.push(() => listeners.delete(wrapper));
+    removeListeners.push(() => {
+      listeners.delete(wrapper);
+    });
   }
 
   const handler = {};
@@ -127,11 +133,11 @@ function createStateAccessor<T extends any>(
       ? (initialValue as () => T)()
       : initialValue;
   let setState = React.useState(state)[1];
-  meta.hooks.push(() => (setState = React.useState(state)[1]));
+  meta.hooks.push(() => {
+    setState = React.useState(state)[1];
+  });
 
-  const getter = () => {
-    return state;
-  };
+  const getter = () => state;
   const setter = (value: T) => {
     if (meta.mounted) {
       state = value;
@@ -160,13 +166,17 @@ export abstract class ModelBase {
       );
     }
     this._meta0 = current.meta;
-    this._meta0.mountEvents.push(() => this.onMount());
+    this._meta0.mountEvents.push(() => {
+      this.onMount();
+    });
     this._meta0.unmountEvents.push(() => {
       this.onUnmount();
       const removeListeners = removeListenerStore.get(this);
       if (removeListeners !== undefined) {
         removeListenerStore.delete(this);
-        removeListeners.forEach(removeListener => removeListener());
+        removeListeners.forEach(removeListener => {
+          removeListener();
+        });
       }
     });
 
