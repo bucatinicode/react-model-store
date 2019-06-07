@@ -24,6 +24,12 @@ class Meta {
   readonly hooks: Action[] = [];
   readonly mountEvents: Action[] = [];
   readonly unmountEvents: Action[] = [];
+
+  deceiveHooks(): void {
+    this.hooks.forEach(useHook => {
+      useHook();
+    });
+  }
 }
 
 const metaStore = new Map<{}, Meta>();
@@ -334,7 +340,7 @@ function finalize(meta: Meta): void {
   }
 }
 
-function deceiveHooks<TModel extends {}>(createModel: () => TModel): TModel {
+function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
   const ref = React.useRef<TModel>();
   let meta: Meta;
   if (!ref.current) {
@@ -354,7 +360,7 @@ function deceiveHooks<TModel extends {}>(createModel: () => TModel): TModel {
     ref.current = model;
   } else {
     meta = metaStore.get(ref.current)!;
-    meta.hooks.forEach(useHook => useHook());
+    meta.deceiveHooks();
   }
 
   React.useEffect(() => {
@@ -392,7 +398,7 @@ export function createStore<TModel extends {}, TValue = void>(
   const Context = React.createContext<Box<TModel> | null>(null);
 
   const Provider = (props: StoreProviderProps<TValue>) => {
-    const model = deceiveHooks(() => createModel(props.initialValue));
+    const model = resolveModel(() => createModel(props.initialValue));
     return React.createElement(
       Context.Provider,
       { value: { inner: model } },
