@@ -71,7 +71,7 @@ function createEvent<TArgs extends any[]>(): Event<TArgs> {
   }
 
   function addListener(model: ModelBase, listener: Action<TArgs>): void {
-    if (!model.mounted) {
+    if (!(model as any).mounted) {
       throw new Error('Unmounted model objects cannot add event listener');
     }
     const wrapper = (...args: TArgs) => {
@@ -194,7 +194,7 @@ export abstract class ModelBase {
     // END DEVELOPMENT BLOCK
   }
 
-  get mounted(): boolean {
+  protected get mounted(): boolean {
     return this._meta0.mounted;
   }
 

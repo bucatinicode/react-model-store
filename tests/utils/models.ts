@@ -45,6 +45,10 @@ export class MountModel extends Model {
 
   value = this.state(true);
 
+  get isMounted(): boolean {
+    return this.mounted;
+  }
+
   get stage(): number {
     return this._stage;
   }
