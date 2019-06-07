@@ -28,12 +28,11 @@ describe('Hooks Tests', () => {
   test('Should not call illigaly react hooks functions.', () => {
     const Store = createStore(() => new IllegalHookModel());
 
-    const mockComponent = jest.fn(() => {
+    const Mock = jest.fn(() => {
       const model = Store.use();
       model.value(false);
       return null;
-    });
-    const Mock = mockComponent as () => null;
+    }) as () => null;
     expect(errorSpy!).toBeCalledTimes(0);
     expect(() =>
       mount(
@@ -42,7 +41,7 @@ describe('Hooks Tests', () => {
         </Store.Provider>
       )
     ).toThrow();
-    expect(mockComponent).toBeCalledTimes(1);
+    expect(Mock).toBeCalledTimes(1);
     expect(errorSpy!).toBeCalled();
   });
 
@@ -50,7 +49,7 @@ describe('Hooks Tests', () => {
     const HigherStore = createStore(() => new SingleStateModel());
     const LowerStore = createStore(() => new LowerModel(HigherStore));
 
-    const mockComponent = jest.fn(() => {
+    const Mock = jest.fn(() => {
       let mountRender = false;
       React.useMemo(() => (mountRender = true), []);
       const lower = LowerStore.use();
@@ -62,8 +61,7 @@ describe('Hooks Tests', () => {
         expect(lower.higher.value).toBe(false);
       }
       return null;
-    });
-    const Mock = mockComponent as () => null;
+    }) as () => null;
     mount(
       <HigherStore.Provider>
         <div>
@@ -75,17 +73,16 @@ describe('Hooks Tests', () => {
         </div>
       </HigherStore.Provider>
     );
-    expect(mockComponent).toBeCalledTimes(2);
+    expect(Mock).toBeCalledTimes(2);
     expect(errorSpy).not.toBeCalled();
   });
 
   test('ref() method that wraps useRef() should get React element refs.', () => {
     let model: RefModel | null = null;
     const Store = createStore(() => (model = new RefModel()));
-    const mockComponent = jest.fn(() => (
+    const Mock = jest.fn(() => (
       <input ref={Store.use().refInput} defaultValue={'input value'} />
-    ));
-    const Mock = mockComponent as () => React.ReactElement;
+    )) as () => React.ReactElement;
     mount(
       <Store.Provider>
         <Mock />
@@ -94,7 +91,7 @@ describe('Hooks Tests', () => {
     expect(model!.refValue.current).toBeTruthy();
     expect(model!.refInput.current).not.toBeNull();
     expect(model!.refInput.current!.value).toBe('input value');
-    expect(mockComponent).toBeCalledTimes(1);
+    expect(Mock).toBeCalledTimes(1);
     expect(errorSpy).not.toBeCalled();
   });
 

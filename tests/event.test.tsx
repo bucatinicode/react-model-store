@@ -27,7 +27,7 @@ describe('Event Tests', () => {
     const ListenStore = createStore(
       () => (listenModel = new ListenModel(EventStore))
     );
-    const mockComponent = jest.fn(() => {
+    const Mock = jest.fn(() => {
       const model = ListenStore.use();
       expect(getListeners(model.eventModel.addEvent).size).toBe(3);
       expectRemoveListenerCount(model, 2);
@@ -42,8 +42,7 @@ describe('Event Tests', () => {
       expect(model.negativeCount).toBe(values![2]);
       model.add(values![3]);
       return null;
-    });
-    const Mock = mockComponent as () => null;
+    }) as () => null;
     mount(
       <EventStore.Provider>
         <EventStore.Consumer>
@@ -57,7 +56,7 @@ describe('Event Tests', () => {
         </EventStore.Consumer>
       </EventStore.Provider>
     );
-    expect(mockComponent).toBeCalledTimes(3);
+    expect(Mock).toBeCalledTimes(3);
     expect(eventModel!.count).toBe(10);
     expect(getListeners(eventModel!.addEvent).size).toBe(1);
     expectRemoveListenerCount(listenModel!, 0);

@@ -62,12 +62,11 @@ describe('Store Tests', () => {
 
   test('<Store.Provider> should provide Store.use() with model instance.', () => {
     const Store = createStore(() => new EmptyModel());
-    const mockComponent = jest.fn(() => {
+    const Mock = jest.fn(() => {
       const model = Store.use();
       expect(model).toBeInstanceOf(EmptyModel);
       return null;
-    });
-    const Mock = mockComponent as () => null;
+    }) as () => null;
     mount(
       <Store.Provider>
         <div>
@@ -75,23 +74,22 @@ describe('Store Tests', () => {
         </div>
       </Store.Provider>
     );
-    expect(mockComponent).toBeCalledTimes(1);
+    expect(Mock).toBeCalledTimes(1);
     expect(errorSpy!).not.toBeCalled();
   });
 
   test('Store.use() should not be provided with model instance without <Store.Provider>.', () => {
     const Store = createStore(() => new EmptyModel());
-    const mockComponent = jest.fn(() => {
+    const Mock = jest.fn(() => {
       expect(() => Store.use()).toThrow();
       return null;
-    });
-    const Mock = mockComponent as () => null;
+    }) as () => null;
     mount(
       <div>
         <Mock />
       </div>
     );
-    expect(mockComponent).toBeCalledTimes(1);
+    expect(Mock).toBeCalledTimes(1);
     expect(errorSpy!).not.toBeCalled();
   });
 
@@ -127,12 +125,11 @@ describe('Store Tests', () => {
     const Store = createStore<HasInitailValueModel, string>(
       initialValue => new HasInitailValueModel(initialValue)
     );
-    const mockComponent = jest.fn(() => {
+    const Mock = jest.fn(() => {
       const model = Store.use();
       expect(model.value).toBe(INITIAL_VALUE);
       return null;
-    });
-    const Mock = mockComponent as () => null;
+    }) as () => null;
     mount(
       <Store.Provider initialValue={INITIAL_VALUE}>
         <div>
@@ -140,7 +137,7 @@ describe('Store Tests', () => {
         </div>
       </Store.Provider>
     );
-    expect(mockComponent).toBeCalledTimes(1);
+    expect(Mock).toBeCalledTimes(1);
     expect(errorSpy!).not.toBeCalled();
   });
 
