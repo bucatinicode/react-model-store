@@ -160,7 +160,7 @@ function createStateAccessor<T extends any>(
 }
 
 export abstract class ModelBase {
-  private readonly _meta0: Meta;
+  private readonly _meta: Meta;
 
   constructor() {
     if (!current.meta) {
@@ -168,11 +168,11 @@ export abstract class ModelBase {
         'Model constructors must be called from createModel argument of createStore() function.'
       );
     }
-    this._meta0 = current.meta;
-    this._meta0.mountEvents.push(() => {
+    this._meta = current.meta;
+    this._meta.mountEvents.push(() => {
       this.onMount();
     });
-    this._meta0.unmountEvents.push(() => {
+    this._meta.unmountEvents.push(() => {
       this.onUnmount();
       const removeListeners = removeListenerStore.get(this);
       if (removeListeners !== undefined) {
@@ -187,7 +187,7 @@ export abstract class ModelBase {
 
     if (__DEV__) {
       Object.defineProperty(this, '_meta', {
-        value: this._meta0,
+        value: this._meta,
       });
     }
 
@@ -195,7 +195,7 @@ export abstract class ModelBase {
   }
 
   protected get mounted(): boolean {
-    return this._meta0.mounted;
+    return this._meta.mounted;
   }
 
   // tslint:disable-next-line: no-empty
@@ -205,13 +205,13 @@ export abstract class ModelBase {
   protected onUnmount(): void {}
 
   protected hook<T = void>(useHook: () => T): T {
-    if (this._meta0.finalized) {
+    if (this._meta.finalized) {
       throw new Error(
         'hook() must be called from constructors of Model classes'
       );
     }
     const result = useHook();
-    this._meta0.hooks.push(useHook);
+    this._meta.hooks.push(useHook);
     return result;
   }
 
@@ -255,8 +255,6 @@ export abstract class ModelBase {
  * React Hooks functions must be called through the use of hook function.
  */
 export abstract class PureModel extends ModelBase {
-  private readonly _meta1 = current.meta!;
-
   /**
    * @example
    * class CounterModel extends PureModel {
@@ -273,7 +271,11 @@ export abstract class PureModel extends ModelBase {
    * @param initialValue an initial value or a function that returns it.
    */
   protected state<T extends any>(initialValue: T | (() => T)): Accessor<T> {
-    return createStateAccessor(this._meta1, initialValue, false);
+    return createStateAccessor(
+      (this as any)._meta as Meta,
+      initialValue,
+      false
+    );
   }
 }
 
@@ -292,11 +294,9 @@ export abstract class PureModel extends ModelBase {
  * }
  */
 export abstract class Model extends ModelBase {
-  private readonly _meta1 = current.meta!;
-
   constructor() {
     super();
-    this._meta1.models.push(this);
+    ((this as any)._meta as Meta).models.push(this);
   }
 
   /**
@@ -314,7 +314,7 @@ export abstract class Model extends ModelBase {
    */
   protected state<T extends any>(initialValue: T | (() => T)): T {
     return (createStateAccessor(
-      this._meta1,
+      (this as any)._meta as Meta,
       initialValue,
       true
     ) as unknown) as T;
@@ -336,7 +336,11 @@ export abstract class Model extends ModelBase {
    * @param initialValue an initial value or a function that returns it.
    */
   protected stateFunc<T extends any>(initialValue: T | (() => T)): Accessor<T> {
-    return createStateAccessor(this._meta1, initialValue, false);
+    return createStateAccessor(
+      (this as any)._meta as Meta,
+      initialValue,
+      false
+    );
   }
 }
 
