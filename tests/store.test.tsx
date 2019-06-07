@@ -6,6 +6,7 @@ import {
   HasInitailValueModel,
   ParentModel,
   MountModel,
+  UndefinableStateModel,
 } from './utils/models';
 import { shallow, mount } from 'enzyme';
 import { findMeta } from './utils/meta';
@@ -226,5 +227,29 @@ describe('Store Tests', () => {
     ];
     testvalues.forEach(args => expectCreateStore(...args));
     expect(errorSpy!).not.toBeCalled();
+  });
+
+  test('State should get and set undefined value.', () => {
+    const Store = createStore(() => new UndefinableStateModel());
+    const Mock = jest.fn(() => {
+      const model = Store.use();
+      let mountRender = false;
+      React.useMemo(() => (mountRender = true), []);
+      if (mountRender) {
+        expect(model.value).toBe(0);
+        model.value = undefined;
+        expect(model.value).toBeUndefined();
+        expect(model.valueFunc()).toBe(0);
+        model.valueFunc(undefined);
+        expect(model.valueFunc()).toBeUndefined();
+      }
+      return null;
+    }) as () => null;
+    mount(
+      <Store.Provider>
+        <Mock />
+      </Store.Provider>
+    );
+    expect(Mock).toBeCalledTimes(2);
   });
 });

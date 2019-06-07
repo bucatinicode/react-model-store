@@ -144,8 +144,11 @@ function createStateAccessor<T extends any>(
       setState(state);
     }
   };
-  const accessor = ((value?: T) =>
-    value === undefined ? getter() : setter(value)) as Accessor<T>;
+
+  function accessor(value?: T): any {
+    return arguments.length === 0 ? getter() : setter(value!);
+  }
+
   if (finalizeRequired) {
     Object.defineProperties(accessor, {
       _finalizeRequired: { value: true },
