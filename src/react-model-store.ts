@@ -8,10 +8,11 @@ const __DEV__ = (window as any).__DEV__;
 
 export type Accessor<T extends any> = (() => T) & ((value: T) => void);
 export type Action<TArgs extends any[] = []> = (...args: TArgs) => void;
-export interface EventHandler<TArgs extends any[]> {
-  addListener(model: ModelBase, listener: Action<TArgs>): void;
-}
-export type Event<TArgs extends any[]> = Action<TArgs> & EventHandler<TArgs>;
+export type EventHandler<TArgs extends any[]> = Action<TArgs> & {
+  add(listener: Action<TArgs>, dep?: ModelBase): boolean;
+  remove(listener: Action<TArgs>): boolean;
+  clear(): void;
+};
 
 interface Box<T> {
   inner: T;
@@ -36,7 +37,10 @@ const metaStore = new Map<{}, Meta>();
 const current = {
   meta: null as Meta | null,
 };
-const removeListenerStore = new Map<ModelBase, Action[]>();
+const listenerDependencyStore = new Map<
+  ModelBase,
+  Map<Action<any>, EventHandler<any>>
+>();
 
 // START DEVELOPMENT BLOCK
 
@@ -53,68 +57,86 @@ if (__DEV__) {
     Meta: {
       value: Meta,
     },
-    removeListenerStore: {
-      value: removeListenerStore,
+    listenerDependencyStore: {
+      value: listenerDependencyStore,
     },
   });
 }
 
 // END DEVELOPMENT BLOCK
 
-function createEvent<TArgs extends any[]>(): Event<TArgs> {
-  const listeners = new Set<Action<TArgs>>();
+function createEventHandler<TArgs extends any[]>(): EventHandler<TArgs> {
+  const listenerMap = new Map<Action<TArgs>, ModelBase | null>();
 
   function event(...args: TArgs): void {
-    listeners.forEach(listener => {
+    listenerMap.forEach((_, listener) => {
       listener(...args);
     });
   }
 
-  function addListener(model: ModelBase, listener: Action<TArgs>): void {
-    if (!(model as any).mounted) {
+  function add(listener: Action<TArgs>, dep?: ModelBase): boolean {
+    if (dep && !(dep as any).mounted) {
       throw new Error('Unmounted model objects cannot add event listener');
     }
-    const wrapper = (...args: TArgs) => {
-      listener(...args);
-    };
-    listeners.add(wrapper);
-    let removeListeners = removeListenerStore.get(model);
-    if (removeListeners === undefined) {
-      removeListenerStore.set(model, (removeListeners = []));
+    if (listenerMap.has(listener)) {
+      return false;
     }
-    removeListeners.push(() => {
-      listeners.delete(wrapper);
+    listenerMap.set(listener, dep === undefined ? null : dep);
+    if (dep) {
+      let map = listenerDependencyStore.get(dep);
+      if (map === undefined) {
+        listenerDependencyStore.set(dep, (map = new Map()));
+      }
+      map.set(listener, event as EventHandler<TArgs>);
+    }
+    return true;
+  }
+
+  function remove(listener: Action<TArgs>): boolean {
+    const dep = listenerMap.get(listener);
+    if (dep === undefined) {
+      return false;
+    }
+    listenerMap.delete(listener);
+    if (dep) {
+      listenerDependencyStore.get(dep)!.delete(listener);
+    }
+    return true;
+  }
+
+  function clear(): void {
+    const listeners: Action<TArgs>[] = [];
+    listenerMap.forEach((_, listener) => {
+      listeners.push(listener);
+    });
+    listeners.forEach(listener => {
+      remove(listener);
     });
   }
 
-  const handler = {};
-
-  Object.defineProperty(handler, 'addListener', {
-    value: addListener,
-    enumerable: true,
-  });
-
   Object.defineProperties(event, {
-    addListener: {
-      value: addListener,
-      enumerable: true,
+    add: {
+      value: add,
     },
-    _handler: {
-      value: handler,
+    remove: {
+      value: remove,
+    },
+    clear: {
+      value: clear,
     },
   });
 
   // START DEVELOPMENT BLOCK
 
   if (__DEV__) {
-    Object.defineProperty(event, '_eventListeners', {
-      value: listeners,
+    Object.defineProperty(event, '_listenerMap', {
+      value: listenerMap,
     });
   }
 
   // END DEVELOPMENT BLOCK
 
-  return event as Event<TArgs>;
+  return event as EventHandler<TArgs>;
 }
 
 function createStateAccessor<T extends any>(
@@ -174,12 +196,16 @@ export abstract class ModelBase {
     });
     this._meta.unmountEvents.push(() => {
       this.onUnmount();
-      const removeListeners = removeListenerStore.get(this);
-      if (removeListeners !== undefined) {
-        removeListenerStore.delete(this);
-        removeListeners.forEach(removeListener => {
-          removeListener();
+      const removeListenerMap = listenerDependencyStore.get(this);
+      if (removeListenerMap !== undefined) {
+        const targets: [EventHandler<any>, Action<any>][] = [];
+        removeListenerMap.forEach((eventHandler, listener) =>
+          targets.push([eventHandler, listener])
+        );
+        targets.forEach(([eventHandler, listener]) => {
+          eventHandler.remove(listener);
         });
+        listenerDependencyStore.delete(this);
       }
     });
 
@@ -227,25 +253,28 @@ export abstract class ModelBase {
       : ({ current: initialValue } as React.RefObject<T>);
   }
 
-  protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs> {
-    const d = createEvent<TArgs>();
-    if (listener) {
-      d.addListener(this, listener);
-    }
-    return d;
-  }
-
-  protected handler<TArgs extends any[]>(
-    event: Event<TArgs>
+  protected event<TArgs extends any[]>(
+    listener?: Action<TArgs>
   ): EventHandler<TArgs> {
-    return (event as any)._handler as EventHandler<TArgs>;
+    const e = createEventHandler<TArgs>();
+    if (listener) {
+      e.add(listener, this);
+    }
+    return e;
   }
 
-  protected listen<TArgs extends any[]>(
-    event: Event<TArgs> | EventHandler<TArgs>,
+  protected addListener<TArgs extends any[]>(
+    event: EventHandler<TArgs>,
     listener: Action<TArgs>
-  ): void {
-    return event.addListener(this, listener);
+  ): boolean {
+    return event.add(listener, this);
+  }
+
+  protected removeListener<TArgs extends any[]>(
+    event: EventHandler<TArgs>,
+    listener: Action<TArgs>
+  ): boolean {
+    return event.remove(listener);
   }
 }
 
@@ -455,8 +484,8 @@ export type ModelComponentProps<TProps = {}, TValue = void> = TProps & {
 /**
  * Create a function component that references a model object created by createModel argument.
  * It is useful when the model is referenced by only a created component.
- * @param createModel 
- * @param render 
+ * @param createModel
+ * @param render
  * @returns A function component
  */
 export function createModelComponent<
