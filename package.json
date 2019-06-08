@@ -1,7 +1,7 @@
 {
   "name": "react-model-store",
   "version": "0.1.1",
-  "description": "A simple state management library for React",
+  "description": "The simple state management library for React",
   "source": "build/src/react-model-store.ts",
   "main": "lib/react-model-store.js",
   "module": "lib/react-model-store.mjs",
@@ -25,8 +25,10 @@
     "test": "jest",
     "coverage": "jest --coverage --collectCoverageFrom=./src/*",
     "travis-ci": "jest --coverage --collectCoverageFrom=./src/* && cat ./coverage/lcov.info | coveralls",
-    "example": "parcel example/index.html --out-dir build/example",
-    "example-tree": "parcel example/tree.html --out-dir build/example-tree",
+    "example-counter": "parcel example/counter.html --out-dir build/example",
+    "example-timer": "parcel example/timer.html --out-dir build/example",
+    "example-todo": "parcel example/todo.html --out-dir build/example",
+    "example-chat": "parcel example/chat.html --out-dir build/example",
     "build": "node scripts/build.js"
   },
   "peerDependencies": {
