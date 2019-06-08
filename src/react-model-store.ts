@@ -1,11 +1,5 @@
 import React from 'react';
 
-// START DEVELOPMENT BLOCK
-
-const __DEV__ = (window as any).__DEV__;
-
-// END DEVELOPMENT BLOCK
-
 export type Accessor<T extends any> = (() => T) & ((value: T) => void);
 export type Action<TArgs extends any[] = []> = (...args: TArgs) => void;
 export type EventHandler<TArgs extends any[]> = Action<TArgs> & {
@@ -46,22 +40,20 @@ const listenerDependencyStore = new Map<
 
 export const __META__: any = {};
 
-if (__DEV__) {
-  Object.defineProperties(__META__, {
-    metaStore: {
-      value: metaStore,
-    },
-    current: {
-      value: current,
-    },
-    Meta: {
-      value: Meta,
-    },
-    listenerDependencyStore: {
-      value: listenerDependencyStore,
-    },
-  });
-}
+Object.defineProperties(__META__, {
+  metaStore: {
+    value: metaStore,
+  },
+  current: {
+    value: current,
+  },
+  Meta: {
+    value: Meta,
+  },
+  listenerDependencyStore: {
+    value: listenerDependencyStore,
+  },
+});
 
 // END DEVELOPMENT BLOCK
 
@@ -128,11 +120,9 @@ function createEventHandler<TArgs extends any[]>(): EventHandler<TArgs> {
 
   // START DEVELOPMENT BLOCK
 
-  if (__DEV__) {
-    Object.defineProperty(event, '_listenerMap', {
-      value: listenerMap,
-    });
-  }
+  Object.defineProperty(event, '_listenerMap', {
+    value: listenerMap,
+  });
 
   // END DEVELOPMENT BLOCK
 
@@ -208,16 +198,6 @@ export abstract class ModelBase {
         listenerDependencyStore.delete(this);
       }
     });
-
-    // START DEVELOPMENT BLOCK
-
-    if (__DEV__) {
-      Object.defineProperty(this, '_meta', {
-        value: this._meta,
-      });
-    }
-
-    // END DEVELOPMENT BLOCK
   }
 
   protected get mounted(): boolean {

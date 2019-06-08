@@ -65,9 +65,6 @@
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
     },
-    "globals": {
-      "__DEV__": true
-    },
     "setupFilesAfterEnv": [
       "<rootDir>/scripts/setup-tests.ts"
     ],
