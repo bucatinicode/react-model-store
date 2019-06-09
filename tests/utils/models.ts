@@ -1,5 +1,12 @@
 import React from 'react';
-import { Model, PureModel, Store, Accessor } from '../../src/react-model-store';
+import {
+  Model,
+  PureModel,
+  Store,
+  Accessor,
+  EventHandler,
+  Action,
+} from '../../src/react-model-store';
 
 export class EmptyModel extends Model {}
 
@@ -45,6 +52,10 @@ export class MountModel extends Model {
 
   value = this.state(true);
 
+  get isMounted(): boolean {
+    return this.mounted;
+  }
+
   get stage(): number {
     return this._stage;
   }
@@ -73,51 +84,45 @@ export class RefModel extends Model {
 }
 
 export class IllegalHookMethodModel extends Model {
-  illegalRef<T>(): React.RefObject<T> {
-    return this.ref();
+  constructor() {
+    super();
+    this.illegalHook();
+    this.illegalState();
   }
 
-  illegalState<T>(initialValue: T): Accessor<T> {
-    return this.stateFunc(initialValue);
+  illegalHook(): void {
+    return this.hook(() => {
+      React.useRef();
+    });
+  }
+
+  illegalState(): Accessor<{}> {
+    return this.stateFunc({});
   }
 }
 
 export class EventModel extends Model {
-  private readonly _count = this.stateFunc<number>(0);
-  readonly addEvent = this.event<[number]>((n: number) =>
-    this._count(this.count + n)
-  );
-  readonly addEventHandler = this.handler(this.addEvent);
-  get count(): number {
-    return this._count();
+  count: number = 0;
+  onClick = this.event<[]>(() => this.count++);
+  onChange = this.event<[React.ChangeEvent<HTMLInputElement>]>();
+}
+
+export class ListenerModel extends Model {
+  add<TArgs extends any[]>(
+    event: EventHandler<TArgs>,
+    listener: Action<TArgs>
+  ): boolean {
+    return this.addListener(event, listener);
+  }
+
+  remove<TArgs extends any[]>(
+    event: EventHandler<TArgs>,
+    listener: Action<TArgs>
+  ): boolean {
+    return this.removeListener(event, listener);
   }
 }
 
-export class ListenModel extends Model {
-  private _lastAdded: number = 0;
-  private _negativeCount: number = 0;
-
-  readonly eventModel: EventModel;
-
-  constructor(eventStore: Store<EventModel>) {
-    super();
-    this.eventModel = this.use(eventStore);
-    this.listen(this.eventModel.addEvent, this.onAddToLastAdded);
-    this.listen(this.eventModel.addEventHandler, this.onAddToSubtract);
-  }
-
-  get lastAdded(): number {
-    return this._lastAdded;
-  }
-  get negativeCount(): number {
-    return this._negativeCount;
-  }
-  readonly onAddToLastAdded = (n: number) => (this._lastAdded = n);
-  readonly onAddToSubtract = (n: number) => (this._negativeCount -= n);
-  add(n: number): void {
-    this.eventModel.addEvent(n);
-  }
-  addListener(): void {
-    this.listen(this.eventModel.addEventHandler, this.onAddToLastAdded);
-  }
+export class NumberModel extends Model {
+  n: number = this.state(0);
 }

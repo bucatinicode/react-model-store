@@ -1,8 +1,14 @@
 import React from 'react';
-import { createStore, Action, Event } from '../src/react-model-store';
-import { EventModel, ListenModel } from './utils/models';
+import { act } from 'react-dom/test-utils';
+import {
+  ModelBase,
+  Action,
+  EventHandler,
+  createModelComponent,
+} from '../src/react-model-store';
+import { EventModel, ListenerModel, NumberModel } from './utils/models';
 import { mount } from 'enzyme';
-import { expectRemoveListenerCount } from './utils/meta';
+import { expectListenerDependencyCount } from './utils/meta';
 
 describe('Event Tests', () => {
   let errorSpy: jest.SpyInstance | null = null;
@@ -21,54 +27,134 @@ describe('Event Tests', () => {
   });
 
   test('Model event should work.', () => {
-    let eventModel: EventModel | null = null;
-    let listenModel: ListenModel | null = null;
-    const EventStore = createStore(() => (eventModel = new EventModel()));
-    const ListenStore = createStore(
-      () => (listenModel = new ListenModel(EventStore))
+    let root: NumberModel | null = null;
+    let event: EventModel | null = null;
+    let listener: ListenerModel | null = null;
+
+    const renderListener = jest.fn(() => null) as (
+      model: ListenerModel
+    ) => null;
+    const Listener = createModelComponent(
+      () => (listener = new ListenerModel()),
+      renderListener
     );
-    const Mock = jest.fn(() => {
-      const model = ListenStore.use();
-      expect(getListeners(model.eventModel.addEvent).size).toBe(3);
-      expectRemoveListenerCount(model, 2);
-      const testValues = React.useMemo(
-        () => [[7, 4, -7, 3], [3, 3, -3, 4], [0, 0, 0, 3]],
-        []
+
+    const renderEvent = jest.fn(({ onChange, onClick }: EventModel) => {
+      return (
+        <div>
+          <input type='text' onChange={onChange} />
+          <button onClick={onClick} />
+        </div>
       );
-      const values = testValues.pop();
-      expect(values).not.toBeUndefined();
-      expect(model.eventModel.count).toBe(values![0]);
-      expect(model.lastAdded).toBe(values![1]);
-      expect(model.negativeCount).toBe(values![2]);
-      model.add(values![3]);
-      return null;
-    }) as () => null;
-    mount(
-      <EventStore.Provider>
-        <EventStore.Consumer>
-          {model =>
-            model.count < 10 ? (
-              <ListenStore.Provider>
-                <Mock />
-              </ListenStore.Provider>
-            ) : null
-          }
-        </EventStore.Consumer>
-      </EventStore.Provider>
+    }) as (model: EventModel) => React.ReactElement;
+    const Event = createModelComponent(
+      () => (event = new EventModel()),
+      renderEvent
     );
-    expect(Mock).toBeCalledTimes(3);
-    expect(eventModel!.count).toBe(10);
-    expect(getListeners(eventModel!.addEvent).size).toBe(1);
-    expectRemoveListenerCount(listenModel!, 0);
-    expect(listenModel!.lastAdded).toBe(3);
-    expect(listenModel!.negativeCount).toBe(-10);
-    expect(() => listenModel!.addListener()).toThrow();
+
+    const renderRoot = jest.fn((model: NumberModel) => {
+      return (
+        <div>
+          {model.n > 1 ? null : <Event />}
+          {model.n > 0 ? null : <Listener />}
+        </div>
+      );
+    }) as (model: NumberModel) => React.ReactElement;
+    const Root = createModelComponent(
+      () => (root = new NumberModel()),
+      renderRoot
+    );
+
+    const wrapper = mount(<Root />);
+    const change = (value: string) => {
+      const input = wrapper.find('input');
+      input.getDOMNode<HTMLInputElement>().value = value;
+      input.simulate('change');
+    };
+    const click = () => wrapper.find('button').simulate('click');
+
+    expect(renderRoot).toBeCalledTimes(1);
+    expect(renderEvent).toBeCalledTimes(1);
+    expect(renderListener).toBeCalledTimes(1);
+    expect(map(event!.onClick).size).toBe(1);
+    expect(map(event!.onChange).size).toBe(0);
+    expectListenerDependencyCount(event!, 1);
+    expectListenerDependencyCount(listener!);
+
+    let count = 0;
+    let text = '';
+    const onClick = () => count--;
+    const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+      (text = e.target.value);
+
+    expect(listener!.add(event!.onClick, onClick)).toBeTruthy();
+    expectListenerDependencyCount(listener!, 1);
+    expect(map(event!.onClick).size).toBe(2);
+    expect(listener!.add(event!.onClick, onClick)).toBeFalsy();
+    expectListenerDependencyCount(listener!, 1);
+    expect(map(event!.onClick).size).toBe(2);
+    expect(listener!.remove(event!.onClick, onClick)).toBeTruthy();
+    expectListenerDependencyCount(listener!, 0);
+    expect(map(event!.onClick).size).toBe(1);
+    expect(listener!.remove(event!.onClick, onClick)).toBeFalsy();
+    expectListenerDependencyCount(listener!, 0);
+    expect(map(event!.onClick).size).toBe(1);
+
+    expect(listener!.add(event!.onChange, onChange)).toBeTruthy();
+    expectListenerDependencyCount(listener!, 1);
+    expect(map(event!.onChange).size).toBe(1);
+    event!.onChange.clear();
+    expectListenerDependencyCount(listener!, 0);
+    expect(map(event!.onChange).size).toBe(0);
+
+    expect(listener!.add(event!.onClick, onClick)).toBeTruthy();
+    expect(listener!.add(event!.onChange, onChange)).toBeTruthy();
+    expectListenerDependencyCount(event!, 1);
+    expectListenerDependencyCount(listener!, 2);
+    expect(map(event!.onClick).size).toBe(2);
+    expect(map(event!.onChange).size).toBe(1);
+
+    change('change value');
+    expect(text).toBe('change value');
+    click();
+    expect(event!.count).toBe(1);
+    expect(count).toBe(-1);
+
+    act(() => {
+      root!.n = 1;
+    });
+    expect(renderRoot).toBeCalledTimes(2);
+    expect(renderEvent).toBeCalledTimes(2);
+    expect(renderListener).toBeCalledTimes(1);
+    expectListenerDependencyCount(event!, 1);
+    expectListenerDependencyCount(listener!);
+    expect(map(event!.onClick).size).toBe(1);
+    expect(map(event!.onChange).size).toBe(0);
+
+    expect(() => listener!.add(event!.onClick, onClick)).toThrow();
+    expect(event!.onClick.add(onClick)).toBeTruthy();
+    expect(map(event!.onClick).size).toBe(2);
+
+    act(() => {
+      root!.n = 2;
+    });
+    expect(renderRoot).toBeCalledTimes(3);
+    expect(renderEvent).toBeCalledTimes(2);
+    expect(renderListener).toBeCalledTimes(1);
+    expectListenerDependencyCount(event!);
+    expectListenerDependencyCount(listener!);
+    expect(map(event!.onClick).size).toBe(1);
+    expect(map(event!.onChange).size).toBe(0);
+
+    expect(event!.onClick.remove(onClick)).toBeTruthy();
+    expect(map(event!.onClick).size).toBe(0);
+
     expect(errorSpy).not.toBeCalled();
   });
 });
 
-function getListeners<TArgs extends any[]>(
-  event: Event<TArgs>
-): Set<Action<TArgs>> {
-  return (event as any)._eventListeners as Set<Action<TArgs>>;
+function map<TArgs extends any[]>(
+  event: EventHandler<TArgs>
+): Map<Action<TArgs>, ModelBase | null> {
+  return (event as any)._listenerMap as Map<Action<TArgs>, ModelBase | null>;
 }

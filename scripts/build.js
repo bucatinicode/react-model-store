@@ -1,15 +1,16 @@
-const path = require('path');
+'use strict';
+
 const fs = require('fs');
 const readline = require('readline');
 const process = require('process');
 const { spawn } = require('child_process');
 
+const util = require('./util');
+const paths = require('./paths');
+
 const RE_START = /^\s*\/{2,3}\s*START\s*DEVELOPMENT\s*BLOCK\s*$/;
 const RE_END = /^\s*\/{2,3}\s*END\s*DEVELOPMENT\s*BLOCK\s*$/;
 const RE_WHITESPACE = /^\s*$/;
-
-const PACKAGE_NAME = 'react-model-store';
-const SOURCE_FILENAME = `${PACKAGE_NAME}.ts`;
 
 const tsconfig = {
   include: ['build/src'],
@@ -32,31 +33,18 @@ const tsconfig = {
   },
 };
 
-const rootDir = path.dirname(__dirname);
-const buildDir = path.resolve(rootDir, 'build');
-const libraryDir = path.resolve(rootDir, 'lib');
-const tsconfigFile = path.resolve(rootDir, 'tsconfig.json');
-const microbuldleFile = path.resolve(
-  rootDir,
-  'node_modules/microbundle/dist/cli.js'
-);
-const sourceDir = path.resolve(rootDir, 'src');
-const sourceFile = path.resolve(sourceDir, SOURCE_FILENAME);
-const destDir = path.resolve(buildDir, 'src');
-const destFile = path.resolve(destDir, SOURCE_FILENAME);
+util.rmall(paths.buildSrcDir);
+util.rmall(paths.libraryDir);
 
-rmall(destDir);
-rmall(libraryDir);
+fs.mkdirSync(paths.buildSrcDir, { recursive: true });
 
-fs.mkdirSync(destDir, { recursive: true });
-
-fs.writeFileSync(tsconfigFile, JSON.stringify(tsconfig, undefined, 2));
+fs.writeFileSync(paths.tsconfigFile, JSON.stringify(tsconfig, undefined, 2));
 
 let promise = Promise.resolve();
 
 promise = promise.then(() => {
-  const writeStream = fs.createWriteStream(destFile, 'utf-8');
-  const readStream = fs.createReadStream(sourceFile, 'utf-8');
+  const writeStream = fs.createWriteStream(paths.buildSrcFile);
+  const readStream = fs.createReadStream(paths.srcFile, { encoding: 'utf8' });
   const reader = readline.createInterface(readStream);
 
   let ignore = false;
@@ -104,7 +92,7 @@ promise = promise.then(() => {
 
 function build() {
   const args = [
-    microbuldleFile,
+    paths.microbundleFile,
     'build',
     '--external',
     'react',
@@ -127,7 +115,10 @@ function build() {
 function dispose() {
   delete tsconfig['include'];
   delete tsconfig['exclude'];
-  fs.writeFileSync(tsconfigFile, JSON.stringify(tsconfig, undefined, 2));
+  fs.writeFileSync(
+    paths.tsconfigFile,
+    JSON.stringify(tsconfig, undefined, 2) + '\n'
+  );
 }
 
 function write(stream, buf_) {
@@ -143,15 +134,4 @@ function write(stream, buf_) {
         })
       )
   );
-}
-
-function rmall(path_) {
-  if (fs.existsSync(path_)) {
-    if (fs.statSync(path_).isDirectory()) {
-      fs.readdirSync(path_).forEach(p => rmall(path.resolve(path_, p)));
-      fs.rmdirSync(path_);
-    } else {
-      fs.unlinkSync(path_);
-    }
-  }
 }

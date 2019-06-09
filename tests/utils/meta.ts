@@ -1,4 +1,9 @@
-import { __META__, Action, ModelBase } from '../../src/react-model-store';
+import {
+  __META__,
+  Action,
+  ModelBase,
+  EventHandler,
+} from '../../src/react-model-store';
 
 export interface Meta {
   readonly models: ModelBase[];
@@ -16,8 +21,10 @@ interface MetaConstructor {
 const current: { meta: Meta | null } = __META__.current;
 const Meta: MetaConstructor = __META__.Meta;
 const metaStore: Map<{}, Meta> = __META__.metaStore;
-const removeListenerStore: Map<ModelBase, Action[]> =
-  __META__.removeListenerStore;
+const listenerDependencyStore: Map<
+  ModelBase,
+  Map<Action<any>, EventHandler<any>>
+> = __META__.listenerDependencyStore;
 
 export function setCurrentMetaAsNew(): void {
   current.meta = new Meta();
@@ -66,10 +73,14 @@ export function findMeta<TModel extends {}>(model: TModel): Meta | undefined {
   return metaStore.get(model);
 }
 
-export function expectRemoveListenerCount(
+export function expectListenerDependencyCount(
   model: ModelBase,
-  expected: number
+  expected?: number
 ): void {
-  const removeListeners = removeListenerStore.get(model) || [];
-  expect(removeListeners).toHaveLength(expected);
+  const map = listenerDependencyStore.get(model);
+  if (expected === undefined) {
+    expect(map).toBeUndefined();
+  } else {
+    expect(map!.size).toBe(expected);
+  }
 }

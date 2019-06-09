@@ -1,17 +1,12 @@
 import React from 'react';
 
-// START DEVELOPMENT BLOCK
-
-const __DEV__ = (window as any).__DEV__;
-
-// END DEVELOPMENT BLOCK
-
 export type Accessor<T extends any> = (() => T) & ((value: T) => void);
 export type Action<TArgs extends any[] = []> = (...args: TArgs) => void;
-export interface EventHandler<TArgs extends any[]> {
-  addListener(model: ModelBase, listener: Action<TArgs>): void;
-}
-export type Event<TArgs extends any[]> = Action<TArgs> & EventHandler<TArgs>;
+export type EventHandler<TArgs extends any[]> = Action<TArgs> & {
+  add(listener: Action<TArgs>, dep?: ModelBase): boolean;
+  remove(listener: Action<TArgs>): boolean;
+  clear(): void;
+};
 
 interface Box<T> {
   inner: T;
@@ -36,85 +31,102 @@ const metaStore = new Map<{}, Meta>();
 const current = {
   meta: null as Meta | null,
 };
-const removeListenerStore = new Map<ModelBase, Action[]>();
+const listenerDependencyStore = new Map<
+  ModelBase,
+  Map<Action<any>, EventHandler<any>>
+>();
 
 // START DEVELOPMENT BLOCK
 
 export const __META__: any = {};
 
-if (__DEV__) {
-  Object.defineProperties(__META__, {
-    metaStore: {
-      value: metaStore,
-    },
-    current: {
-      value: current,
-    },
-    Meta: {
-      value: Meta,
-    },
-    removeListenerStore: {
-      value: removeListenerStore,
-    },
-  });
-}
+Object.defineProperties(__META__, {
+  metaStore: {
+    value: metaStore,
+  },
+  current: {
+    value: current,
+  },
+  Meta: {
+    value: Meta,
+  },
+  listenerDependencyStore: {
+    value: listenerDependencyStore,
+  },
+});
 
 // END DEVELOPMENT BLOCK
 
-function createEvent<TArgs extends any[]>(): Event<TArgs> {
-  const listeners = new Set<Action<TArgs>>();
+function createEventHandler<TArgs extends any[]>(): EventHandler<TArgs> {
+  const listenerMap = new Map<Action<TArgs>, ModelBase | null>();
 
   function event(...args: TArgs): void {
-    listeners.forEach(listener => {
+    listenerMap.forEach((_, listener) => {
       listener(...args);
     });
   }
 
-  function addListener(model: ModelBase, listener: Action<TArgs>): void {
-    if (!model.mounted) {
+  function add(listener: Action<TArgs>, dep?: ModelBase): boolean {
+    if (dep && !(dep as any).mounted) {
       throw new Error('Unmounted model objects cannot add event listener');
     }
-    const wrapper = (...args: TArgs) => {
-      listener(...args);
-    };
-    listeners.add(wrapper);
-    let removeListeners = removeListenerStore.get(model);
-    if (removeListeners === undefined) {
-      removeListenerStore.set(model, (removeListeners = []));
+    if (listenerMap.has(listener)) {
+      return false;
     }
-    removeListeners.push(() => {
-      listeners.delete(wrapper);
+    listenerMap.set(listener, dep === undefined ? null : dep);
+    if (dep) {
+      let map = listenerDependencyStore.get(dep);
+      if (map === undefined) {
+        listenerDependencyStore.set(dep, (map = new Map()));
+      }
+      map.set(listener, event as EventHandler<TArgs>);
+    }
+    return true;
+  }
+
+  function remove(listener: Action<TArgs>): boolean {
+    const dep = listenerMap.get(listener);
+    if (dep === undefined) {
+      return false;
+    }
+    listenerMap.delete(listener);
+    if (dep) {
+      listenerDependencyStore.get(dep)!.delete(listener);
+    }
+    return true;
+  }
+
+  function clear(): void {
+    const listeners: Action<TArgs>[] = [];
+    listenerMap.forEach((_, listener) => {
+      listeners.push(listener);
+    });
+    listeners.forEach(listener => {
+      remove(listener);
     });
   }
 
-  const handler = {};
-
-  Object.defineProperty(handler, 'addListener', {
-    value: addListener,
-    enumerable: true,
-  });
-
   Object.defineProperties(event, {
-    addListener: {
-      value: addListener,
-      enumerable: true,
+    add: {
+      value: add,
     },
-    _handler: {
-      value: handler,
+    remove: {
+      value: remove,
+    },
+    clear: {
+      value: clear,
     },
   });
 
   // START DEVELOPMENT BLOCK
 
-  if (__DEV__) {
-    Object.defineProperty(event, '_eventListeners', {
-      value: listeners,
-    });
-  }
+  Object.defineProperty(event, '_listenerMap', {
+    value: listenerMap,
+  });
 
   // END DEVELOPMENT BLOCK
 
-  return event as Event<TArgs>;
+  return event as EventHandler<TArgs>;
 }
 
 function createStateAccessor<T extends any>(
@@ -160,7 +172,7 @@ function createStateAccessor<T extends any>(
 }
 
 export abstract class ModelBase {
-  private readonly _meta0: Meta;
+  private readonly _meta: Meta;
 
   constructor() {
     if (!current.meta) {
@@ -168,34 +180,28 @@ export abstract class ModelBase {
         'Model constructors must be called from createModel argument of createStore() function.'
       );
     }
-    this._meta0 = current.meta;
-    this._meta0.mountEvents.push(() => {
+    this._meta = current.meta;
+    this._meta.mountEvents.push(() => {
       this.onMount();
     });
-    this._meta0.unmountEvents.push(() => {
+    this._meta.unmountEvents.push(() => {
       this.onUnmount();
-      const removeListeners = removeListenerStore.get(this);
-      if (removeListeners !== undefined) {
-        removeListenerStore.delete(this);
-        removeListeners.forEach(removeListener => {
-          removeListener();
+      const removeListenerMap = listenerDependencyStore.get(this);
+      if (removeListenerMap !== undefined) {
+        const targets: [EventHandler<any>, Action<any>][] = [];
+        removeListenerMap.forEach((eventHandler, listener) =>
+          targets.push([eventHandler, listener])
+        );
+        targets.forEach(([eventHandler, listener]) => {
+          eventHandler.remove(listener);
         });
+        listenerDependencyStore.delete(this);
       }
     });
-
-    // START DEVELOPMENT BLOCK
-
-    if (__DEV__) {
-      Object.defineProperty(this, '_meta', {
-        value: this._meta0,
-      });
-    }
-
-    // END DEVELOPMENT BLOCK
   }
 
-  get mounted(): boolean {
-    return this._meta0.mounted;
+  protected get mounted(): boolean {
+    return this._meta.mounted;
   }
 
   // tslint:disable-next-line: no-empty
@@ -205,13 +211,13 @@ export abstract class ModelBase {
   protected onUnmount(): void {}
 
   protected hook<T = void>(useHook: () => T): T {
-    if (this._meta0.finalized) {
+    if (this._meta.finalized) {
       throw new Error(
         'hook() must be called from constructors of Model classes'
       );
     }
     const result = useHook();
-    this._meta0.hooks.push(useHook);
+    this._meta.hooks.push(useHook);
     return result;
   }
 
@@ -222,30 +228,33 @@ export abstract class ModelBase {
   }
 
   protected ref<T>(initialValue?: T): React.RefObject<T> {
-    return this.hook(() =>
-      React.useRef(initialValue === undefined ? null : initialValue)
-    );
+    return arguments.length === 0
+      ? React.createRef()
+      : ({ current: initialValue } as React.RefObject<T>);
   }
 
-  protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs> {
-    const d = createEvent<TArgs>();
-    if (listener) {
-      d.addListener(this, listener);
-    }
-    return d;
-  }
-
-  protected handler<TArgs extends any[]>(
-    event: Event<TArgs>
+  protected event<TArgs extends any[]>(
+    listener?: Action<TArgs>
   ): EventHandler<TArgs> {
-    return (event as any)._handler as EventHandler<TArgs>;
+    const e = createEventHandler<TArgs>();
+    if (listener) {
+      e.add(listener, this);
+    }
+    return e;
   }
 
-  protected listen<TArgs extends any[]>(
-    event: Event<TArgs> | EventHandler<TArgs>,
+  protected addListener<TArgs extends any[]>(
+    event: EventHandler<TArgs>,
     listener: Action<TArgs>
-  ): void {
-    return event.addListener(this, listener);
+  ): boolean {
+    return event.add(listener, this);
+  }
+
+  protected removeListener<TArgs extends any[]>(
+    event: EventHandler<TArgs>,
+    listener: Action<TArgs>
+  ): boolean {
+    return event.remove(listener);
   }
 }
 
@@ -255,8 +264,6 @@ export abstract class ModelBase {
  * React Hooks functions must be called through the use of hook function.
  */
 export abstract class PureModel extends ModelBase {
-  private readonly _meta1 = current.meta!;
-
   /**
    * @example
    * class CounterModel extends PureModel {
@@ -273,7 +280,11 @@ export abstract class PureModel extends ModelBase {
    * @param initialValue an initial value or a function that returns it.
    */
   protected state<T extends any>(initialValue: T | (() => T)): Accessor<T> {
-    return createStateAccessor(this._meta1, initialValue, false);
+    return createStateAccessor(
+      (this as any)._meta as Meta,
+      initialValue,
+      false
+    );
   }
 }
 
@@ -292,11 +303,9 @@ export abstract class PureModel extends ModelBase {
  * }
  */
 export abstract class Model extends ModelBase {
-  private readonly _meta1 = current.meta!;
-
   constructor() {
     super();
-    this._meta1.models.push(this);
+    ((this as any)._meta as Meta).models.push(this);
   }
 
   /**
@@ -314,7 +323,7 @@ export abstract class Model extends ModelBase {
    */
   protected state<T extends any>(initialValue: T | (() => T)): T {
     return (createStateAccessor(
-      this._meta1,
+      (this as any)._meta as Meta,
       initialValue,
       true
     ) as unknown) as T;
@@ -336,7 +345,11 @@ export abstract class Model extends ModelBase {
    * @param initialValue an initial value or a function that returns it.
    */
   protected stateFunc<T extends any>(initialValue: T | (() => T)): Accessor<T> {
-    return createStateAccessor(this._meta1, initialValue, false);
+    return createStateAccessor(
+      (this as any)._meta as Meta,
+      initialValue,
+      false
+    );
   }
 }
 
@@ -442,4 +455,33 @@ export function createStore<TModel extends {}, TValue = void>(
   };
 
   return { Provider, Consumer, use };
+}
+
+export type ModelComponentProps<TProps = {}, TValue = void> = TProps & {
+  initialValue?: TValue;
+};
+
+/**
+ * Create a function component that references a model object created by createModel argument.
+ * It is useful when the model is referenced by only a created component.
+ * @param createModel
+ * @param render
+ * @returns A function component
+ */
+export function createModelComponent<
+  TModel extends {},
+  TProps = any,
+  TValue = void
+>(
+  createModel: (initialValue?: TValue) => TModel,
+  render: (
+    model: TModel,
+    props: TProps,
+    context?: any
+  ) => React.ReactElement | null
+): React.FunctionComponent<ModelComponentProps<TProps, TValue>> {
+  return (p: ModelComponentProps<TProps, TValue>, ctx?: any) => {
+    const model = resolveModel(() => createModel(p.initialValue));
+    return render(model, p, ctx);
+  };
 }

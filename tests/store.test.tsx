@@ -151,7 +151,7 @@ describe('Store Tests', () => {
       </Store.Provider>
     );
     expect(model!.stage).toBe(0);
-    expect(model!.mounted).toBeTruthy();
+    expect(model!.isMounted).toBeTruthy();
     expect(findMeta(model!)).not.toBeUndefined();
 
     model = null;
@@ -161,7 +161,7 @@ describe('Store Tests', () => {
       </Store.Provider>
     );
     expect(model!.stage).toBe(1);
-    expect(model!.mounted).toBeTruthy();
+    expect(model!.isMounted).toBeTruthy();
     expect(findMeta(model!)).not.toBeUndefined();
 
     const Context = React.createContext(true);
@@ -187,7 +187,7 @@ describe('Store Tests', () => {
     model = null;
     mount(<Unmounter />);
     expect(model!.stage).toBe(2);
-    expect(model!.mounted).toBeFalsy();
+    expect(model!.isMounted).toBeFalsy();
     expect(model!.value).toBeTruthy();
     model!.value = false;
     expect(model!.value).toBeTruthy();
