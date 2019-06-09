@@ -29,7 +29,8 @@
     "example-timer": "parcel example/timer.html --out-dir build/example",
     "example-todo": "parcel example/todo.html --out-dir build/example",
     "example-chat": "parcel example/chat.html --out-dir build/example",
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "build-example": "node scripts/build-example.js"
   },
   "peerDependencies": {
     "react": "^16.8.0"
