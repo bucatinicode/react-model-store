@@ -1,6 +1,6 @@
 # React Model Store
 
-[![npm version](https://badge.fury.io/js/react-model-store.svg)](https://badge.fury.io/js/react-model-store)
+[![npm version](https://img.shields.io/npm/v/react-model-store.svg)](https://www.npmjs.com/package/react-model-store)
 [![Build Status](https://travis-ci.org/bucatinicode/react-model-store.svg?branch=master)](https://travis-ci.org/bucatinicode/react-model-store)
 [![Coverage Status](https://coveralls.io/repos/github/bucatinicode/react-model-store/badge.svg)](https://coveralls.io/github/bucatinicode/react-model-store)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
