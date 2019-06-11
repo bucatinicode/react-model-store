@@ -8,7 +8,7 @@
 
 The simple state management library for React.
 
-This library provides model-based state management.
+This library provides model-based state management with Hooks and Context API of React.
 
 ## Install
 

@@ -298,6 +298,7 @@ export abstract class PureModel extends ModelBase {
  *
  * @example
  * class ComponentModel extends Model {
+ *   // this.state() method is React.useState() wrapper.
  *   message: string = this.state('initial state value');
  *
  *   update(newMessage: string): void {
@@ -316,7 +317,7 @@ export abstract class Model extends ModelBase {
    *
    * @example
    * class CounterModel extends Model {
-   *   // state() must be used to define public state.
+   *   // State values can be accessed as variable after Model constructor is called.
    *   count: number = this.state(0);
    *
    *   readonly increment = () => this.count = this.count + 1;
