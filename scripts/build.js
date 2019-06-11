@@ -33,62 +33,88 @@ const tsconfig = {
   },
 };
 
-util.rmall(paths.buildSrcDir);
-util.rmall(paths.libraryDir);
+prepare()
+  .then(omitDevBlock)
+  .then(build)
+  .then(fixEOL)
+  .finally(dispose)
+  .catch(err => {
+    console.error(err.message);
+    process.exit(1);
+  });
 
-fs.mkdirSync(paths.buildSrcDir, { recursive: true });
+function prepare() {
+  return Promise.resolve().then(() => {
+    util.rmall(paths.buildSrcDir);
+    util.rmall(paths.libraryDir);
 
-fs.writeFileSync(paths.tsconfigFile, JSON.stringify(tsconfig, undefined, 2));
+    fs.mkdirSync(paths.buildSrcDir, { recursive: true });
 
-let promise = Promise.resolve();
+    fs.writeFileSync(paths.tsconfigFile, JSON.stringify(tsconfig));
+  });
+}
 
-promise = promise.then(() => {
+function omitDevBlock() {
   const writeStream = fs.createWriteStream(paths.buildSrcFile);
-  const readStream = fs.createReadStream(paths.srcFile, { encoding: 'utf8' });
-  const reader = readline.createInterface(readStream);
+  return new Promise(resolve => {
+    let promise = Promise.resolve();
 
-  let ignore = false;
-  let buf = null;
+    function write(buf_) {
+      promise = promise.then(
+        () =>
+          new Promise((resolve, reject) =>
+            writeStream.write(buf_, err => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
+            })
+          )
+      );
+    }
 
-  reader.on('line', line => {
-    if (ignore) {
-      if (RE_END.test(line)) {
-        ignore = false;
-      }
-    } else {
-      if (RE_START.test(line)) {
-        if (buf !== null && !RE_WHITESPACE.test(buf)) {
-          write(writeStream, buf);
+    const readStream = fs.createReadStream(paths.srcFile, { encoding: 'utf8' });
+    const reader = readline.createInterface(readStream);
+
+    let ignore = false;
+    let buf = null;
+
+    reader.on('line', line => {
+      if (ignore) {
+        if (RE_END.test(line)) {
+          ignore = false;
         }
-        ignore = true;
-        buf = null;
       } else {
-        if (buf !== null) {
-          write(writeStream, buf);
+        if (RE_START.test(line)) {
+          if (buf !== null && !RE_WHITESPACE.test(buf)) {
+            write(buf);
+          }
+          ignore = true;
+          buf = null;
+        } else {
+          if (buf !== null) {
+            write(buf);
+          }
+          buf = line + '\n';
         }
-        buf = line + '\n';
       }
-    }
-  });
+    });
 
-  reader.on('close', () => {
-    try {
-      if (buf !== null) {
-        write(writeStream, buf);
+    reader.on('close', () => {
+      try {
+        if (buf !== null) {
+          write(buf);
+        }
+      } finally {
+        readStream.close();
       }
-    } finally {
-      readStream.close();
-    }
-    promise = promise
-      .finally(() => writeStream.close())
-      .then(build)
-      .finally(dispose)
-      .catch(err => {
-        console.error(err.message);
-        process.exit(1);
-      });
+      promise.then(() => resolve());
+    });
+  }).finally(() => {
+    writeStream.close();
   });
-});
+}
 
 function build() {
   const args = [
@@ -112,26 +138,22 @@ function build() {
   });
 }
 
+function fixEOL() {
+  const files = fs.readdirSync(paths.libraryDir);
+  files.forEach(name => {
+    if (name.endsWith('.d.ts')) {
+      const file = paths.libraryFile(name);
+      const data = fs.readFileSync(file, { encoding: 'utf8' });
+      fs.writeFileSync(file, data.split('\r\n').join('\n'));
+    }
+  });
+}
+
 function dispose() {
   delete tsconfig['include'];
   delete tsconfig['exclude'];
   fs.writeFileSync(
     paths.tsconfigFile,
     JSON.stringify(tsconfig, undefined, 2) + '\n'
-  );
-}
-
-function write(stream, buf_) {
-  promise = promise.then(
-    () =>
-      new Promise((resolve, reject) =>
-        stream.write(buf_, err => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        })
-      )
   );
 }

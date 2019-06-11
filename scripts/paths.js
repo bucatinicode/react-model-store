@@ -7,7 +7,7 @@ const buildDir = (exports.buildDir = path.resolve(rootDir, 'build'));
 const srcDir = (exports.srcDir = path.resolve(rootDir, 'src'));
 const buildSrcDir = (exports.buildSrcDir = path.resolve(buildDir, 'src'));
 
-exports.libraryDir = path.resolve(rootDir, 'lib');
+const libraryDir = (exports.libraryDir = path.resolve(rootDir, 'lib'));
 exports.exampleDir = path.resolve(rootDir, 'example');
 const publicDir = (exports.publicDir = path.resolve(buildDir, 'gh-pages'));
 const publicExampleDir = (exports.publicExampleDir = path.resolve(
@@ -25,3 +25,7 @@ exports.srcFile = path.resolve(srcDir, SOURCE_FILENAME);
 exports.buildSrcFile = path.resolve(buildSrcDir, SOURCE_FILENAME);
 
 exports.publicExampleIndexFile = path.resolve(publicExampleDir, 'index.html');
+
+exports.libraryFile = function(name) {
+  return path.resolve(libraryDir, name);
+};
