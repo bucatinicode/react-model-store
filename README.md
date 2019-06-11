@@ -30,7 +30,7 @@ yarn add react-model-store
 ```tsx
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Model, createModelComponent } from 'react-model-store';
+import { Model, createComponent } from 'react-model-store';
 
 class CounterModel extends Model {
   count: number = this.state(0);
@@ -42,8 +42,8 @@ class CounterModel extends Model {
   decrement = () => setTimeout(() => this.count--, 1000);
 }
 
-const Counter = createModelComponent(
-  () => new CounterModel(),
+const Counter = createComponent(
+  CounterModel,
   ({ count, increment, decrement }) => (
     <div>
       <p>Count: {count}</p>
@@ -63,7 +63,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));
 ```tsx
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Model, createStore, createModelComponent } from 'react-model-store';
+import { Model, createStore, createComponent } from 'react-model-store';
 
 interface Todo {
   key: number;
@@ -139,7 +139,7 @@ class TodoModel extends Model {
   }
 }
 
-const Store = createStore(() => new RootModel());
+const Store = createStore(RootModel);
 
 const ControlPanel = () => {
   const { control: { textInput, onAddClick, onKeyPress } } = Store.use();
@@ -152,8 +152,8 @@ const ControlPanel = () => {
   );
 };
 
-const TodoItem = createModelComponent(
-  (todo?: Todo) => new TodoModel(todo!),
+const TodoItem = createComponent(
+  TodoModel,
   ({ todo: { text }, onRemoveClick }) => (
     <li>
       <button onClick={onRemoveClick}>Remove</button>
@@ -189,7 +189,7 @@ ReactDOM.render(
 ```tsx
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Model, createModelComponent, createStore } from 'react-model-store';
+import { Model, createComponent, createStore } from 'react-model-store';
 
 class RootModel extends Model {
   // Store.Provider component is re-rendered when this state is changed.
@@ -209,7 +209,7 @@ class RootModel extends Model {
   }
 }
 
-const Store = createStore(() => new RootModel());
+const Store = createStore(RootModel);
 
 class HighFrequencyTimerModel extends Model {
   root = this.use(Store); // use RootModel
@@ -252,8 +252,8 @@ class HighFrequencyTimerModel extends Model {
   };
 }
 
-const HighFrequencyTimer = createModelComponent(
-  () => new HighFrequencyTimerModel(),
+const HighFrequencyTimer = createComponent(
+  HighFrequencyTimerModel,
   ({ time }) => <span>{(time / 1000).toFixed(2)}</span>
 );
 

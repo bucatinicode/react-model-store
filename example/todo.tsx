@@ -3,11 +3,7 @@ import 'react-app-polyfill/stable';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {
-  Model,
-  createStore,
-  createModelComponent,
-} from '../src/react-model-store';
+import { Model, createStore, createComponent } from '../src/react-model-store';
 
 interface Todo {
   key: number;
@@ -83,7 +79,7 @@ class TodoModel extends Model {
   }
 }
 
-const Store = createStore(() => new RootModel());
+const Store = createStore(RootModel);
 
 const ControlPanel = () => {
   const {
@@ -98,8 +94,8 @@ const ControlPanel = () => {
   );
 };
 
-const TodoItem = createModelComponent(
-  (todo?: Todo) => new TodoModel(todo!),
+const TodoItem = createComponent(
+  TodoModel,
   ({ todo: { text }, onRemoveClick }) => (
     <li>
       <button onClick={onRemoveClick}>Remove</button>

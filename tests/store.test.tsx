@@ -9,7 +9,11 @@ import {
   UndefinableStateModel,
 } from './utils/models';
 import { shallow, mount } from 'enzyme';
-import { findMeta } from './utils/meta';
+import {
+  findMeta,
+  setCurrentMetaAsNew,
+  setCurrentMetaAsNull,
+} from './utils/meta';
 
 describe('Store Tests', () => {
   let errorSpy: jest.SpyInstance | null = null;
@@ -27,41 +31,8 @@ describe('Store Tests', () => {
     errorSpy!.mockRestore();
   });
 
-  test('<Store.Provider> should create model object.', () => {
-    let model: SingleStateModel | null = null;
-    const Store = createStore(() => (model = new SingleStateModel()));
-    shallow(
-      <Store.Provider>
-        <div />
-      </Store.Provider>
-    );
-    expect(model).not.toBeNull();
-    const meta = findMeta(model!)!;
-    expect(meta).not.toBeUndefined();
-    expect(meta.mounted).toBeTruthy();
-    expect(meta.finalized).toBeTruthy();
-    expect(meta.hooks).toHaveLength(1);
-    expect(meta.models).toHaveLength(1);
-    expect(meta.mountEvents).toHaveLength(1);
-    expect(meta.unmountEvents).toHaveLength(1);
-    expect(errorSpy!).not.toBeCalled();
-  });
-
-  test('createStore() should exchange state properties of classes that extend Model class.', () => {
-    let model: ParentModel | null = null;
-    const Store = createStore(() => (model = new ParentModel()));
-    shallow(
-      <Store.Provider>
-        <div />
-      </Store.Provider>
-    );
-    expect(typeof model!.child.grandchild.value).toBe('boolean');
-    expect(model!.child.grandchild.value).toBeTruthy();
-    expect(errorSpy!).not.toBeCalled();
-  });
-
   test('<Store.Provider> should provide Store.use() with model instance.', () => {
-    const Store = createStore(() => new EmptyModel());
+    const Store = createStore(EmptyModel);
     const Mock = jest.fn(() => {
       const model = Store.use();
       expect(model).toBeInstanceOf(EmptyModel);
@@ -79,7 +50,7 @@ describe('Store Tests', () => {
   });
 
   test('Store.use() should not be provided with model instance without <Store.Provider>.', () => {
-    const Store = createStore(() => new EmptyModel());
+    const Store = createStore(EmptyModel);
     const Mock = jest.fn(() => {
       expect(() => Store.use()).toThrow();
       return null;
@@ -94,7 +65,7 @@ describe('Store Tests', () => {
   });
 
   test('<Store.Provider> should provide <Store.Consumer> with model instance.', () => {
-    const Store = createStore(() => new EmptyModel());
+    const Store = createStore(EmptyModel);
     mount(
       <Store.Provider>
         <div>
@@ -106,9 +77,55 @@ describe('Store Tests', () => {
     );
     expect(errorSpy!).not.toBeCalled();
   });
+  test('<Store.Provider> should create model object.', () => {
+    let model: SingleStateModel | null = null;
+    const Store = createStore(SingleStateModel);
+    mount(
+      <Store.Provider>
+        <div>
+          <Store.Consumer>
+            {m => {
+              model = m;
+              return null;
+            }}
+          </Store.Consumer>
+        </div>
+      </Store.Provider>
+    );
+    expect(model).not.toBeNull();
+    const meta = findMeta(model!)!;
+    expect(meta).not.toBeUndefined();
+    expect(meta.mounted).toBeTruthy();
+    expect(meta.finalized).toBeTruthy();
+    expect(meta.hooks).toHaveLength(1);
+    expect(meta.models).toHaveLength(1);
+    expect(meta.mountEvents).toHaveLength(1);
+    expect(meta.unmountEvents).toHaveLength(1);
+    expect(errorSpy!).not.toBeCalled();
+  });
+
+  test('createStore() should exchange state properties of classes that extend Model class.', () => {
+    let model: ParentModel | null = null;
+    const Store = createStore(ParentModel);
+    mount(
+      <Store.Provider>
+        <div>
+          <Store.Consumer>
+            {m => {
+              model = m;
+              return null;
+            }}
+          </Store.Consumer>
+        </div>
+      </Store.Provider>
+    );
+    expect(typeof model!.child.grandchild.value).toBe('boolean');
+    expect(model!.child.grandchild.value).toBeTruthy();
+    expect(errorSpy!).not.toBeCalled();
+  });
 
   test('<Store.Consumer> should not be provided with model instance without <Store.Provider>.', () => {
-    const Store = createStore(() => new EmptyModel());
+    const Store = createStore(EmptyModel);
     expect(errorSpy!).toBeCalledTimes(0);
     expect(() =>
       mount(
@@ -122,9 +139,7 @@ describe('Store Tests', () => {
 
   test('initialValue props of <Store.Provider> should provide createModel function with initial value.', () => {
     const INITIAL_VALUE = 'initial value';
-    const Store = createStore<HasInitailValueModel, string>(
-      initialValue => new HasInitailValueModel(initialValue)
-    );
+    const Store = createStore(HasInitailValueModel);
     const Mock = jest.fn(() => {
       const model = Store.use();
       expect(model.value).toBe(INITIAL_VALUE);
@@ -143,21 +158,34 @@ describe('Store Tests', () => {
 
   test('Classes that extend ModelBase class can override onMount() and onUnmount() methods.', () => {
     let model: MountModel | null = null;
-    const Store = createStore(() => (model = new MountModel()));
+    const Store = createStore(MountModel);
 
-    shallow(
-      <Store.Provider>
-        <div />
-      </Store.Provider>
-    );
+    const Mock = jest.fn(() => {
+      model = new MountModel();
+      return null;
+    }) as () => null;
+
+    setCurrentMetaAsNew();
+    try {
+      shallow(<Mock />);
+    } finally {
+      setCurrentMetaAsNull();
+    }
+    expect(Mock).toBeCalled();
     expect(model!.stage).toBe(0);
     expect(model!.isMounted).toBeTruthy();
-    expect(findMeta(model!)).not.toBeUndefined();
 
     model = null;
     mount(
       <Store.Provider>
-        <div />
+        <div>
+          <Store.Consumer>
+            {m => {
+              model = m;
+              return null;
+            }}
+          </Store.Consumer>
+        </div>
       </Store.Provider>
     );
     expect(model!.stage).toBe(1);
@@ -173,12 +201,19 @@ describe('Store Tests', () => {
       return (
         <Context.Provider value={isRender}>
           <Store.Provider>
-            <Context.Consumer>
-              {_ => {
-                setRender(false);
-                return null;
+            <Store.Consumer>
+              {m => {
+                model = m;
+                return (
+                  <Context.Consumer>
+                    {_ => {
+                      setRender(false);
+                      return null;
+                    }}
+                  </Context.Consumer>
+                );
               }}
-            </Context.Consumer>
+            </Store.Consumer>
           </Store.Provider>
         </Context.Provider>
       );
@@ -195,39 +230,8 @@ describe('Store Tests', () => {
     expect(errorSpy!).not.toBeCalled();
   });
 
-  test('createModel argument of createStore() should return a new object', () => {
-    function expectCreateStore(createModel: () => any, toThrow: boolean) {
-      const Store = createStore(createModel);
-
-      const create = () =>
-        shallow(
-          <Store.Provider>
-            <div />
-          </Store.Provider>
-        );
-
-      if (toThrow) {
-        expect(create).toThrow();
-      } else {
-        create();
-      }
-    }
-    const obj = {};
-    const testvalues: [() => any, boolean][] = [
-      [() => undefined, true],
-      [() => null, true],
-      [() => true, true],
-      [() => 1, true],
-      [() => 'str', true],
-      [() => obj, false],
-      [() => obj, true],
-    ];
-    testvalues.forEach(args => expectCreateStore(...args));
-    expect(errorSpy!).not.toBeCalled();
-  });
-
   test('State should get and set undefined value.', () => {
-    const Store = createStore(() => new UndefinableStateModel());
+    const Store = createStore(UndefinableStateModel);
     const Mock = jest.fn(() => {
       const model = Store.use();
       let mountRender = false;

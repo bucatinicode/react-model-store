@@ -1,7 +1,11 @@
 import React from 'react';
-import { SingleStateModel } from './utils/models';
+import {
+  SingleStateModel,
+  HasInitailValueModel,
+  IllegalHookMethodModel,
+} from './utils/models';
 import { mount } from 'enzyme';
-import { createModelComponent } from '../src/react-model-store';
+import { createComponent } from '../src/react-model-store';
 
 describe('Model Component Test', () => {
   let errorSpy: jest.SpyInstance | null = null;
@@ -38,10 +42,7 @@ describe('Model Component Test', () => {
       model: SingleStateModel,
       props: { value: number }
     ) => React.ReactElement;
-    const Model = createModelComponent(
-      () => new SingleStateModel(),
-      renderMock
-    );
+    const Model = createComponent(SingleStateModel, renderMock);
     const wrapper = mount(<Model value={100} />);
     expect(renderMock).toBeCalledTimes(2);
     expect(wrapper.getDOMNode().nodeName).toBe('DIV');
@@ -54,14 +55,34 @@ describe('Model Component Test', () => {
     const renderMock = jest.fn((model: { value: string }) => {
       return <div>{model.value}</div>;
     }) as (model: { value: string }) => React.ReactElement;
-    const Model = createModelComponent(
-      (initialValue?: string) => ({ value: initialValue! }),
-      renderMock
-    );
+    const Model = createComponent(HasInitailValueModel, renderMock);
     const wrapper = mount(<Model initialValue={INITIAL_VALUE} />);
     expect(renderMock).toBeCalledTimes(1);
     expect(wrapper.getDOMNode().nodeName).toBe('DIV');
     expect(wrapper.getDOMNode().innerHTML).toBe(INITIAL_VALUE);
+    expect(errorSpy).not.toBeCalled();
+  });
+
+  test('Hook functions should not be called outside of Model constructor.', () => {
+    let setState: ((value: boolean) => void) | null = null;
+    const renderMock = jest.fn((model: IllegalHookMethodModel) => {
+      setState!(false);
+      expect(() => model.illegalState()).toThrow();
+      expect(() => model.illegalHook()).toThrow();
+      return null;
+    }) as (model: IllegalHookMethodModel) => null;
+    const Component = createComponent(IllegalHookMethodModel, renderMock);
+    const Mock = jest.fn(() => {
+      const [state, set] = React.useState(true);
+      setState = set;
+      if (!state) {
+        return null;
+      }
+      return <Component />;
+    }) as () => null;
+    mount(<Mock />);
+    expect(renderMock).toBeCalledTimes(1);
+    expect(Mock).toBeCalledTimes(2);
     expect(errorSpy).not.toBeCalled();
   });
 });

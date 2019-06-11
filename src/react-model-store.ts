@@ -7,6 +7,9 @@ export type EventHandler<TArgs extends any[]> = Action<TArgs> & {
   remove(listener: Action<TArgs>): boolean;
   clear(): void;
 };
+export interface ModelClass<TModel extends {}, TValue = void> {
+  new (initialValue: TValue): TModel;
+}
 
 interface Box<T> {
   inner: T;
@@ -377,9 +380,6 @@ function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
     } finally {
       current.meta = null;
     }
-    if (!model || typeof model !== 'object' || metaStore.has(model)) {
-      throw new Error('createModel() must return a new object');
-    }
     metaStore.set(model, meta);
     finalize(meta);
     meta.finalized = true;
@@ -419,12 +419,12 @@ export interface Store<TModel extends {}, TValue = void> {
 }
 
 export function createStore<TModel extends {}, TValue = void>(
-  createModel: (initialValue?: TValue) => TModel
+  modelClass: ModelClass<TModel, TValue>
 ): Store<TModel, TValue> {
   const Context = React.createContext<Box<TModel> | null>(null);
 
   const Provider = (props: StoreProviderProps<TValue>) => {
-    const model = resolveModel(() => createModel(props.initialValue));
+    const model = resolveModel(() => new modelClass(props.initialValue!));
     return React.createElement(
       Context.Provider,
       { value: { inner: model } },
@@ -468,12 +468,8 @@ export type ModelComponentProps<TProps = {}, TValue = void> = TProps & {
  * @param render
  * @returns A function component
  */
-export function createModelComponent<
-  TModel extends {},
-  TProps = any,
-  TValue = void
->(
-  createModel: (initialValue?: TValue) => TModel,
+export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
+  modelClass: ModelClass<TModel, TValue>,
   render: (
     model: TModel,
     props: TProps,
@@ -481,7 +477,7 @@ export function createModelComponent<
   ) => React.ReactElement | null
 ): React.FunctionComponent<ModelComponentProps<TProps, TValue>> {
   return (p: ModelComponentProps<TProps, TValue>, ctx?: any) => {
-    const model = resolveModel(() => createModel(p.initialValue));
+    const model = resolveModel(() => new modelClass(p.initialValue!));
     return render(model, p, ctx);
   };
 }

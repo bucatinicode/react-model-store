@@ -3,11 +3,7 @@ import 'react-app-polyfill/stable';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {
-  Model,
-  createModelComponent,
-  createStore,
-} from '../src/react-model-store';
+import { Model, createComponent, createStore } from '../src/react-model-store';
 
 class RootModel extends Model {
   // Store.Provider component is re-rendered when this state is changed.
@@ -27,7 +23,7 @@ class RootModel extends Model {
   }
 }
 
-const Store = createStore(() => new RootModel());
+const Store = createStore(RootModel);
 
 class HighFrequencyTimerModel extends Model {
   root = this.use(Store); // use RootModel
@@ -70,8 +66,8 @@ class HighFrequencyTimerModel extends Model {
   };
 }
 
-const HighFrequencyTimer = createModelComponent(
-  () => new HighFrequencyTimerModel(),
+const HighFrequencyTimer = createComponent(
+  HighFrequencyTimerModel,
   ({ time }) => <span>{(time / 1000).toFixed(2)}</span>
 );
 

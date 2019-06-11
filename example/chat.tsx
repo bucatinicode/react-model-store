@@ -3,11 +3,7 @@ import 'react-app-polyfill/stable';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {
-  createStore,
-  Model,
-  createModelComponent,
-} from '../src/react-model-store';
+import { createStore, Model, createComponent } from '../src/react-model-store';
 
 interface Chat {
   readonly key: number;
@@ -109,7 +105,7 @@ class ChatRoomModel extends Model {
   }
 }
 
-const RootStore = createStore(() => new RootModel());
+const RootStore = createStore(RootModel);
 
 const ChatDisplay = (props: { chats: Chat[] }) => (
   <div>
@@ -132,19 +128,15 @@ const ChatDisplay = (props: { chats: Chat[] }) => (
   </div>
 );
 
-const ChatView = createModelComponent(
-  () => new ChatViewModel(),
-  ({ chats }) => (
-    <div>
-      <p>Chat View</p>
-      <ChatDisplay chats={chats} />
-    </div>
-  )
-);
+const ChatView = createComponent(ChatViewModel, ({ chats }) => (
+  <div>
+    <p>Chat View</p>
+    <ChatDisplay chats={chats} />
+  </div>
+));
 
-const ChatRoom = createModelComponent(
-  (initialValue?: { user: string; focus: boolean }) =>
-    new ChatRoomModel(initialValue),
+const ChatRoom = createComponent(
+  ChatRoomModel,
   ({
     chats,
     user,

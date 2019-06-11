@@ -4,7 +4,7 @@ import {
   ModelBase,
   Action,
   EventHandler,
-  createModelComponent,
+  createComponent,
 } from '../src/react-model-store';
 import { EventModel, ListenerModel, NumberModel } from './utils/models';
 import { mount } from 'enzyme';
@@ -31,15 +31,14 @@ describe('Event Tests', () => {
     let event: EventModel | null = null;
     let listener: ListenerModel | null = null;
 
-    const renderListener = jest.fn(() => null) as (
-      model: ListenerModel
-    ) => null;
-    const Listener = createModelComponent(
-      () => (listener = new ListenerModel()),
-      renderListener
-    );
+    const renderListener = jest.fn((model: ListenerModel) => {
+      listener = model;
+      return null;
+    }) as (model: ListenerModel) => null;
+    const Listener = createComponent(ListenerModel, renderListener);
 
-    const renderEvent = jest.fn(({ onChange, onClick }: EventModel) => {
+    const renderEvent = jest.fn((model: EventModel) => {
+      const { onChange, onClick } = (event = model);
       return (
         <div>
           <input type='text' onChange={onChange} />
@@ -47,12 +46,10 @@ describe('Event Tests', () => {
         </div>
       );
     }) as (model: EventModel) => React.ReactElement;
-    const Event = createModelComponent(
-      () => (event = new EventModel()),
-      renderEvent
-    );
+    const Event = createComponent(EventModel, renderEvent);
 
     const renderRoot = jest.fn((model: NumberModel) => {
+      root = model;
       return (
         <div>
           {model.n > 1 ? null : <Event />}
@@ -60,10 +57,7 @@ describe('Event Tests', () => {
         </div>
       );
     }) as (model: NumberModel) => React.ReactElement;
-    const Root = createModelComponent(
-      () => (root = new NumberModel()),
-      renderRoot
-    );
+    const Root = createComponent(NumberModel, renderRoot);
 
     const wrapper = mount(<Root />);
     const change = (value: string) => {
