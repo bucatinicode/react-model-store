@@ -11,6 +11,7 @@ const paths = require('./paths');
 const RE_START = /^\s*\/{2,3}\s*START\s*DEVELOPMENT\s*BLOCK\s*$/;
 const RE_END = /^\s*\/{2,3}\s*END\s*DEVELOPMENT\s*BLOCK\s*$/;
 const RE_WHITESPACE = /^\s*$/;
+const RE_LIBRARY = /\.(m?js|ts)$/;
 
 const tsconfig = {
   include: ['build/src'],
@@ -141,7 +142,7 @@ function build() {
 function fixEOL() {
   const files = fs.readdirSync(paths.libraryDir);
   files.forEach(name => {
-    if (name.endsWith('.d.ts')) {
+    if (RE_LIBRARY.test(name)) {
       const file = paths.libraryFile(name);
       const data = fs.readFileSync(file, { encoding: 'utf8' });
       fs.writeFileSync(file, data.split('\r\n').join('\n'));
