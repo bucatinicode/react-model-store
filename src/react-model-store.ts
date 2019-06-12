@@ -39,27 +39,6 @@ const listenerDependencyStore = new Map<
   Map<Action<any>, Event<any>>
 >();
 
-// START DEVELOPMENT BLOCK
-
-export const __META__: any = {};
-
-Object.defineProperties(__META__, {
-  metaStore: {
-    value: metaStore,
-  },
-  current: {
-    value: current,
-  },
-  Meta: {
-    value: Meta,
-  },
-  listenerDependencyStore: {
-    value: listenerDependencyStore,
-  },
-});
-
-// END DEVELOPMENT BLOCK
-
 function createEventHandler<TArgs extends any[]>(): Event<TArgs> {
   const listenerMap = new Map<Action<TArgs>, ModelBase | null>();
 
@@ -120,14 +99,6 @@ function createEventHandler<TArgs extends any[]>(): Event<TArgs> {
       value: clear,
     },
   });
-
-  // START DEVELOPMENT BLOCK
-
-  Object.defineProperty(event, '_listenerMap', {
-    value: listenerMap,
-  });
-
-  // END DEVELOPMENT BLOCK
 
   return event as Event<TArgs>;
 }
@@ -236,9 +207,7 @@ export abstract class ModelBase {
       : ({ current: initialValue } as React.RefObject<T>);
   }
 
-  protected event<TArgs extends any[]>(
-    listener?: Action<TArgs>
-  ): Event<TArgs> {
+  protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs> {
     const e = createEventHandler<TArgs>();
     if (listener) {
       e.add(listener, this);

@@ -1,8 +1,8 @@
 {
   "name": "react-model-store",
-  "version": "0.3.0-beta1",
+  "version": "0.3.0-beta2",
   "description": "The simple state management library for React",
-  "source": "build/src/react-model-store.ts",
+  "source": "src/react-model-store.ts",
   "main": "lib/react-model-store.js",
   "module": "lib/react-model-store.mjs",
   "umd:main": "lib/react-model-store.umd.js",

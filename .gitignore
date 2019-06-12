@@ -1,6 +1,6 @@
 /*
 !/.gitignore
-!/src/
+!/src/react-model-store.ts
 !/lib/
 !/README.md
 !/LICENSE
