@@ -2,7 +2,7 @@ import React from 'react';
 
 export type Accessor<T extends any> = (() => T) & ((value: T) => void);
 export type Action<TArgs extends any[] = []> = (...args: TArgs) => void;
-export type EventHandler<TArgs extends any[]> = Action<TArgs> & {
+export type Event<TArgs extends any[]> = Action<TArgs> & {
   add(listener: Action<TArgs>, dep?: ModelBase): boolean;
   remove(listener: Action<TArgs>): boolean;
   clear(): void;
@@ -36,7 +36,7 @@ const current = {
 };
 const listenerDependencyStore = new Map<
   ModelBase,
-  Map<Action<any>, EventHandler<any>>
+  Map<Action<any>, Event<any>>
 >();
 
 // START DEVELOPMENT BLOCK
@@ -60,7 +60,7 @@ Object.defineProperties(__META__, {
 
 // END DEVELOPMENT BLOCK
 
-function createEventHandler<TArgs extends any[]>(): EventHandler<TArgs> {
+function createEventHandler<TArgs extends any[]>(): Event<TArgs> {
   const listenerMap = new Map<Action<TArgs>, ModelBase | null>();
 
   function event(...args: TArgs): void {
@@ -82,7 +82,7 @@ function createEventHandler<TArgs extends any[]>(): EventHandler<TArgs> {
       if (map === undefined) {
         listenerDependencyStore.set(dep, (map = new Map()));
       }
-      map.set(listener, event as EventHandler<TArgs>);
+      map.set(listener, event as Event<TArgs>);
     }
     return true;
   }
@@ -129,7 +129,7 @@ function createEventHandler<TArgs extends any[]>(): EventHandler<TArgs> {
 
   // END DEVELOPMENT BLOCK
 
-  return event as EventHandler<TArgs>;
+  return event as Event<TArgs>;
 }
 
 function createStateAccessor<T extends any>(
@@ -191,7 +191,7 @@ export abstract class ModelBase {
       this.onUnmount();
       const removeListenerMap = listenerDependencyStore.get(this);
       if (removeListenerMap !== undefined) {
-        const targets: [EventHandler<any>, Action<any>][] = [];
+        const targets: [Event<any>, Action<any>][] = [];
         removeListenerMap.forEach((eventHandler, listener) =>
           targets.push([eventHandler, listener])
         );
@@ -238,7 +238,7 @@ export abstract class ModelBase {
 
   protected event<TArgs extends any[]>(
     listener?: Action<TArgs>
-  ): EventHandler<TArgs> {
+  ): Event<TArgs> {
     const e = createEventHandler<TArgs>();
     if (listener) {
       e.add(listener, this);
@@ -247,14 +247,14 @@ export abstract class ModelBase {
   }
 
   protected addListener<TArgs extends any[]>(
-    event: EventHandler<TArgs>,
+    event: Event<TArgs>,
     listener: Action<TArgs>
   ): boolean {
     return event.add(listener, this);
   }
 
   protected removeListener<TArgs extends any[]>(
-    event: EventHandler<TArgs>,
+    event: Event<TArgs>,
     listener: Action<TArgs>
   ): boolean {
     return event.remove(listener);

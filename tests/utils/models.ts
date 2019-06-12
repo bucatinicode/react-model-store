@@ -4,7 +4,7 @@ import {
   PureModel,
   Store,
   Accessor,
-  EventHandler,
+  Event,
   Action,
 } from '../../src/react-model-store';
 
@@ -109,14 +109,14 @@ export class EventModel extends Model {
 
 export class ListenerModel extends Model {
   add<TArgs extends any[]>(
-    event: EventHandler<TArgs>,
+    event: Event<TArgs>,
     listener: Action<TArgs>
   ): boolean {
     return this.addListener(event, listener);
   }
 
   remove<TArgs extends any[]>(
-    event: EventHandler<TArgs>,
+    event: Event<TArgs>,
     listener: Action<TArgs>
   ): boolean {
     return this.removeListener(event, listener);

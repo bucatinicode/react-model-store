@@ -2,7 +2,7 @@ import {
   __META__,
   Action,
   ModelBase,
-  EventHandler,
+  Event,
 } from '../../src/react-model-store';
 
 export interface Meta {
@@ -23,7 +23,7 @@ const Meta: MetaConstructor = __META__.Meta;
 const metaStore: Map<{}, Meta> = __META__.metaStore;
 const listenerDependencyStore: Map<
   ModelBase,
-  Map<Action<any>, EventHandler<any>>
+  Map<Action<any>, Event<any>>
 > = __META__.listenerDependencyStore;
 
 export function setCurrentMetaAsNew(): void {

@@ -3,7 +3,7 @@ import { act } from 'react-dom/test-utils';
 import {
   ModelBase,
   Action,
-  EventHandler,
+  Event,
   createComponent,
 } from '../src/react-model-store';
 import { EventModel, ListenerModel, NumberModel } from './utils/models';
@@ -148,7 +148,7 @@ describe('Event Tests', () => {
 });
 
 function map<TArgs extends any[]>(
-  event: EventHandler<TArgs>
+  event: Event<TArgs>
 ): Map<Action<TArgs>, ModelBase | null> {
   return (event as any)._listenerMap as Map<Action<TArgs>, ModelBase | null>;
 }
