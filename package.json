@@ -1,0 +1,74 @@
+{
+  "name": "react-model-store",
+  "version": "0.3.0-beta1",
+  "description": "The simple state management library for React",
+  "source": "build/src/react-model-store.ts",
+  "main": "lib/react-model-store.js",
+  "module": "lib/react-model-store.mjs",
+  "umd:main": "lib/react-model-store.umd.js",
+  "types": "lib/react-model-store.d.ts",
+  "amdName": "ReactModelStore",
+  "sideEffects": false,
+  "repository": "https://github.com/bucatinicode/react-model-store",
+  "author": "bucatini",
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "model",
+    "state-management",
+    "react-hooks",
+    "typescript"
+  ],
+  "scripts": {
+    "clean": "rm -rf ./lib ./build ./coverage",
+    "format": "prettier --write **",
+    "test": "jest",
+    "coverage": "jest --coverage --collectCoverageFrom=./src/*",
+    "travis-ci": "jest --coverage --collectCoverageFrom=./src/* && cat ./coverage/lcov.info | coveralls",
+    "example-counter": "parcel example/counter.html --out-dir build/example",
+    "example-timer": "parcel example/timer.html --out-dir build/example",
+    "example-todo": "parcel example/todo.html --out-dir build/example",
+    "example-chat": "parcel example/chat.html --out-dir build/example",
+    "build": "node scripts/build.js",
+    "build-example": "node scripts/build-example.js"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0"
+  },
+  "devDependencies": {
+    "@types/enzyme": "^3.9.3",
+    "@types/enzyme-adapter-react-16": "^1.0.5",
+    "@types/jest": "^24.0.13",
+    "@types/react": "^16.8.19",
+    "@types/react-dom": "^16.8.4",
+    "coveralls": "^3.0.3",
+    "enzyme": "^3.9.0",
+    "enzyme-adapter-react-16": "^1.13.2",
+    "jest": "^24.8.0",
+    "microbundle": "^0.11.0",
+    "parcel": "^1.12.3",
+    "prettier": "^1.17.1",
+    "react": "^16.8.6",
+    "react-app-polyfill": "^1.0.1",
+    "react-dom": "^16.8.6",
+    "ts-jest": "^24.0.2",
+    "ts-node": "^8.2.0",
+    "tslint": "^5.16.0",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-config-standard": "^8.0.1",
+    "tslint-plugin-prettier": "^2.0.1",
+    "typescript": "^3.4.5"
+  },
+  "jest": {
+    "roots": [
+      "<rootDir>/tests"
+    ],
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
+    "setupFilesAfterEnv": [
+      "<rootDir>/scripts/setup-tests.ts"
+    ],
+    "verbose": true
+  }
+}
