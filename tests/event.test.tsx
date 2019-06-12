@@ -5,7 +5,7 @@ import {
   Action,
   Event,
   createComponent,
-} from '../src/react-model-store';
+} from '../src/react-model-store.dev';
 import { EventModel, ListenerModel, NumberModel } from './utils/models';
 import { mount } from 'enzyme';
 import { expectListenerDependencyCount } from './utils/meta';

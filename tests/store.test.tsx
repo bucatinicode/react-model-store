@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStore } from '../src/react-model-store';
+import { createStore } from '../src/react-model-store.dev';
 import {
   SingleStateModel,
   EmptyModel,

@@ -31,15 +31,14 @@ const indexHtml = `<!DOCTYPE html>
 </html>
 `;
 
-clean();
-build(Promise.resolve())
-  .then(() => mkIndexHtml())
-  .catch(err =>
-    setTimeout(() => {
-      console.error(err);
-      process.exit(1);
-    })
-  );
+clean()
+  .then(util.generateSrcFile)
+  .then(build)
+  .then(mkIndexHtml)
+  .catch(err => {
+    console.error(err.message);
+    process.exit(1);
+  });
 
 function clean() {
   if (fs.existsSync(paths.publicExampleDir)) {
@@ -55,13 +54,15 @@ function clean() {
   } else {
     fs.mkdirSync(paths.publicExampleDir, { recursive: true });
   }
+  return Promise.resolve();
 }
 
 function mkIndexHtml() {
   fs.writeFileSync(paths.publicExampleIndexFile, indexHtml);
 }
 
-function build(promise) {
+function build() {
+  let promise = Promise.resolve();
   EXAMPLES.forEach(e => {
     const args = [
       paths.parcelFile,

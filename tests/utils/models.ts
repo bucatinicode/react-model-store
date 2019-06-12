@@ -6,7 +6,7 @@ import {
   Accessor,
   Event,
   Action,
-} from '../../src/react-model-store';
+} from '../../src/react-model-store.dev';
 
 export class EmptyModel extends Model {}
 

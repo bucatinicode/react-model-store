@@ -5,7 +5,7 @@ import {
   IllegalHookMethodModel,
 } from './utils/models';
 import { mount } from 'enzyme';
-import { createComponent } from '../src/react-model-store';
+import { createComponent } from '../src/react-model-store.dev';
 
 describe('Model Component Test', () => {
   let errorSpy: jest.SpyInstance | null = null;
