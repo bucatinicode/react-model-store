@@ -417,6 +417,15 @@ export interface Store<TModel extends {}, TValue = void> {
   use(): TModel;
 }
 
+/**
+ * Create a model store that wrapped Context API.
+ * It is useful when nested components need to reference the model.
+ * Every time <Store.Provider> is mounted, Store creates a model object.
+ * <Store.Provider> provides the model object to nested components.
+ * Then <Store.Consumer> or Store.use() can consume the model object.
+ * @param modelClass
+ * @returns Store
+ */
 export function createStore<TModel extends {}, TValue = void>(
   modelClass: ModelClass<TModel, TValue>
 ): Store<TModel, TValue> {
@@ -461,11 +470,11 @@ export type ModelComponentProps<TProps = {}, TValue = void> = TProps & {
 };
 
 /**
- * Create a function component that references a model object created by createModel argument.
+ * Create a function component that references a model object.
  * It is useful when the model is referenced by only a created component.
- * @param createModel
+ * @param modelClass
  * @param render
- * @returns A function component
+ * @returns FunctionComponent
  */
 export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
   modelClass: ModelClass<TModel, TValue>,
