@@ -1,8 +1,8 @@
 {
   "name": "react-model-store",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The simple state management library for React",
-  "source": "build/src/react-model-store.ts",
+  "source": "src/react-model-store.ts",
   "main": "lib/react-model-store.js",
   "module": "lib/react-model-store.mjs",
   "umd:main": "lib/react-model-store.umd.js",
@@ -20,15 +20,15 @@
     "typescript"
   ],
   "scripts": {
-    "clean": "rm -rf ./lib ./build ./coverage",
+    "clean": "rm -rf ./lib ./src/react-model-store.ts ./coverage",
     "format": "prettier --write **",
     "test": "jest",
     "coverage": "jest --coverage --collectCoverageFrom=./src/*",
     "travis-ci": "jest --coverage --collectCoverageFrom=./src/* && cat ./coverage/lcov.info | coveralls",
-    "example-counter": "parcel example/counter.html --out-dir build/example",
-    "example-timer": "parcel example/timer.html --out-dir build/example",
-    "example-todo": "parcel example/todo.html --out-dir build/example",
-    "example-chat": "parcel example/chat.html --out-dir build/example",
+    "example-counter": "node scripts/srcgen.js && parcel example/counter.html --out-dir build/example",
+    "example-timer": "node scripts/srcgen.js && parcel example/timer.html --out-dir build/example",
+    "example-todo": "node scripts/srcgen.js && parcel example/todo.html --out-dir build/example",
+    "example-chat": "node scripts/srcgen.js && parcel example/chat.html --out-dir build/example",
     "build": "node scripts/build.js",
     "build-example": "node scripts/build-example.js"
   },

@@ -6,3 +6,4 @@
 /.vscode/
 /.cache/
 /react-model-store-*
+/src/react-model-store.ts

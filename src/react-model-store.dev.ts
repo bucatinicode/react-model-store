@@ -2,11 +2,14 @@ import React from 'react';
 
 export type Accessor<T extends any> = (() => T) & ((value: T) => void);
 export type Action<TArgs extends any[] = []> = (...args: TArgs) => void;
-export type EventHandler<TArgs extends any[]> = Action<TArgs> & {
+export type Event<TArgs extends any[]> = Action<TArgs> & {
   add(listener: Action<TArgs>, dep?: ModelBase): boolean;
   remove(listener: Action<TArgs>): boolean;
   clear(): void;
 };
+export interface ModelClass<TModel extends {}, TValue = void> {
+  new (initialValue: TValue): TModel;
+}
 
 interface Box<T> {
   inner: T;
@@ -33,7 +36,7 @@ const current = {
 };
 const listenerDependencyStore = new Map<
   ModelBase,
-  Map<Action<any>, EventHandler<any>>
+  Map<Action<any>, Event<any>>
 >();
 
 // START DEVELOPMENT BLOCK
@@ -57,7 +60,7 @@ Object.defineProperties(__META__, {
 
 // END DEVELOPMENT BLOCK
 
-function createEventHandler<TArgs extends any[]>(): EventHandler<TArgs> {
+function createEventHandler<TArgs extends any[]>(): Event<TArgs> {
   const listenerMap = new Map<Action<TArgs>, ModelBase | null>();
 
   function event(...args: TArgs): void {
@@ -79,7 +82,7 @@ function createEventHandler<TArgs extends any[]>(): EventHandler<TArgs> {
       if (map === undefined) {
         listenerDependencyStore.set(dep, (map = new Map()));
       }
-      map.set(listener, event as EventHandler<TArgs>);
+      map.set(listener, event as Event<TArgs>);
     }
     return true;
   }
@@ -126,7 +129,7 @@ function createEventHandler<TArgs extends any[]>(): EventHandler<TArgs> {
 
   // END DEVELOPMENT BLOCK
 
-  return event as EventHandler<TArgs>;
+  return event as Event<TArgs>;
 }
 
 function createStateAccessor<T extends any>(
@@ -188,7 +191,7 @@ export abstract class ModelBase {
       this.onUnmount();
       const removeListenerMap = listenerDependencyStore.get(this);
       if (removeListenerMap !== undefined) {
-        const targets: [EventHandler<any>, Action<any>][] = [];
+        const targets: [Event<any>, Action<any>][] = [];
         removeListenerMap.forEach((eventHandler, listener) =>
           targets.push([eventHandler, listener])
         );
@@ -233,9 +236,7 @@ export abstract class ModelBase {
       : ({ current: initialValue } as React.RefObject<T>);
   }
 
-  protected event<TArgs extends any[]>(
-    listener?: Action<TArgs>
-  ): EventHandler<TArgs> {
+  protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs> {
     const e = createEventHandler<TArgs>();
     if (listener) {
       e.add(listener, this);
@@ -244,14 +245,14 @@ export abstract class ModelBase {
   }
 
   protected addListener<TArgs extends any[]>(
-    event: EventHandler<TArgs>,
+    event: Event<TArgs>,
     listener: Action<TArgs>
   ): boolean {
     return event.add(listener, this);
   }
 
   protected removeListener<TArgs extends any[]>(
-    event: EventHandler<TArgs>,
+    event: Event<TArgs>,
     listener: Action<TArgs>
   ): boolean {
     return event.remove(listener);
@@ -295,6 +296,7 @@ export abstract class PureModel extends ModelBase {
  *
  * @example
  * class ComponentModel extends Model {
+ *   // this.state() method is React.useState() wrapper.
  *   message: string = this.state('initial state value');
  *
  *   update(newMessage: string): void {
@@ -313,7 +315,7 @@ export abstract class Model extends ModelBase {
    *
    * @example
    * class CounterModel extends Model {
-   *   // state() must be used to define public state.
+   *   // State values can be accessed as variable after Model constructor is called.
    *   count: number = this.state(0);
    *
    *   readonly increment = () => this.count = this.count + 1;
@@ -377,9 +379,6 @@ function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
     } finally {
       current.meta = null;
     }
-    if (!model || typeof model !== 'object' || metaStore.has(model)) {
-      throw new Error('createModel() must return a new object');
-    }
     metaStore.set(model, meta);
     finalize(meta);
     meta.finalized = true;
@@ -419,12 +418,12 @@ export interface Store<TModel extends {}, TValue = void> {
 }
 
 export function createStore<TModel extends {}, TValue = void>(
-  createModel: (initialValue?: TValue) => TModel
+  modelClass: ModelClass<TModel, TValue>
 ): Store<TModel, TValue> {
   const Context = React.createContext<Box<TModel> | null>(null);
 
   const Provider = (props: StoreProviderProps<TValue>) => {
-    const model = resolveModel(() => createModel(props.initialValue));
+    const model = resolveModel(() => new modelClass(props.initialValue!));
     return React.createElement(
       Context.Provider,
       { value: { inner: model } },
@@ -468,12 +467,8 @@ export type ModelComponentProps<TProps = {}, TValue = void> = TProps & {
  * @param render
  * @returns A function component
  */
-export function createModelComponent<
-  TModel extends {},
-  TProps = any,
-  TValue = void
->(
-  createModel: (initialValue?: TValue) => TModel,
+export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
+  modelClass: ModelClass<TModel, TValue>,
   render: (
     model: TModel,
     props: TProps,
@@ -481,7 +476,7 @@ export function createModelComponent<
   ) => React.ReactElement | null
 ): React.FunctionComponent<ModelComponentProps<TProps, TValue>> {
   return (p: ModelComponentProps<TProps, TValue>, ctx?: any) => {
-    const model = resolveModel(() => createModel(p.initialValue));
+    const model = resolveModel(() => new modelClass(p.initialValue!));
     return render(model, p, ctx);
   };
 }

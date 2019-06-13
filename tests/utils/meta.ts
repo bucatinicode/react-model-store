@@ -2,8 +2,8 @@ import {
   __META__,
   Action,
   ModelBase,
-  EventHandler,
-} from '../../src/react-model-store';
+  Event,
+} from '../../src/react-model-store.dev';
 
 export interface Meta {
   readonly models: ModelBase[];
@@ -21,10 +21,8 @@ interface MetaConstructor {
 const current: { meta: Meta | null } = __META__.current;
 const Meta: MetaConstructor = __META__.Meta;
 const metaStore: Map<{}, Meta> = __META__.metaStore;
-const listenerDependencyStore: Map<
-  ModelBase,
-  Map<Action<any>, EventHandler<any>>
-> = __META__.listenerDependencyStore;
+const listenerDependencyStore: Map<ModelBase, Map<Action<any>, Event<any>>> =
+  __META__.listenerDependencyStore;
 
 export function setCurrentMetaAsNew(): void {
   current.meta = new Meta();

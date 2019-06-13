@@ -1,20 +1,24 @@
 'use strict';
 
 const fs = require('fs');
-const readline = require('readline');
 const process = require('process');
 const { spawn } = require('child_process');
 
+const { DEVELOPMENT_SOURCE_FILENAME } = require('./constants');
 const util = require('./util');
 const paths = require('./paths');
 
-const RE_START = /^\s*\/{2,3}\s*START\s*DEVELOPMENT\s*BLOCK\s*$/;
-const RE_END = /^\s*\/{2,3}\s*END\s*DEVELOPMENT\s*BLOCK\s*$/;
-const RE_WHITESPACE = /^\s*$/;
+const RE_LIBRARY = /\.(m?js|ts)$/;
 
 const tsconfig = {
-  include: ['build/src'],
-  exclude: ['node_modules', 'example', 'src', 'tests', 'scripts'],
+  include: ['src'],
+  exclude: [
+    'node_modules',
+    'example',
+    'tests',
+    'scripts',
+    `src/${DEVELOPMENT_SOURCE_FILENAME}`,
+  ],
   compilerOptions: {
     target: 'ES5',
     module: 'es2015',
@@ -33,62 +37,22 @@ const tsconfig = {
   },
 };
 
-util.rmall(paths.buildSrcDir);
-util.rmall(paths.libraryDir);
-
-fs.mkdirSync(paths.buildSrcDir, { recursive: true });
-
-fs.writeFileSync(paths.tsconfigFile, JSON.stringify(tsconfig, undefined, 2));
-
-let promise = Promise.resolve();
-
-promise = promise.then(() => {
-  const writeStream = fs.createWriteStream(paths.buildSrcFile);
-  const readStream = fs.createReadStream(paths.srcFile, { encoding: 'utf8' });
-  const reader = readline.createInterface(readStream);
-
-  let ignore = false;
-  let buf = null;
-
-  reader.on('line', line => {
-    if (ignore) {
-      if (RE_END.test(line)) {
-        ignore = false;
-      }
-    } else {
-      if (RE_START.test(line)) {
-        if (buf !== null && !RE_WHITESPACE.test(buf)) {
-          write(writeStream, buf);
-        }
-        ignore = true;
-        buf = null;
-      } else {
-        if (buf !== null) {
-          write(writeStream, buf);
-        }
-        buf = line + '\n';
-      }
-    }
+prepare()
+  .then(util.generateSrcFile)
+  .then(build)
+  .then(fixEOL)
+  .finally(dispose)
+  .catch(err => {
+    console.error(err.message);
+    process.exit(1);
   });
 
-  reader.on('close', () => {
-    try {
-      if (buf !== null) {
-        write(writeStream, buf);
-      }
-    } finally {
-      readStream.close();
-    }
-    promise = promise
-      .finally(() => writeStream.close())
-      .then(build)
-      .finally(dispose)
-      .catch(err => {
-        console.error(err.message);
-        process.exit(1);
-      });
+function prepare() {
+  return Promise.resolve().then(() => {
+    util.rmall(paths.libraryDir);
+    fs.writeFileSync(paths.tsconfigFile, JSON.stringify(tsconfig));
   });
-});
+}
 
 function build() {
   const args = [
@@ -112,26 +76,22 @@ function build() {
   });
 }
 
+function fixEOL() {
+  const files = fs.readdirSync(paths.libraryDir);
+  files.forEach(name => {
+    if (RE_LIBRARY.test(name)) {
+      const file = paths.libraryFile(name);
+      const data = fs.readFileSync(file, { encoding: 'utf8' });
+      fs.writeFileSync(file, data.split('\r\n').join('\n'));
+    }
+  });
+}
+
 function dispose() {
   delete tsconfig['include'];
   delete tsconfig['exclude'];
   fs.writeFileSync(
     paths.tsconfigFile,
     JSON.stringify(tsconfig, undefined, 2) + '\n'
-  );
-}
-
-function write(stream, buf_) {
-  promise = promise.then(
-    () =>
-      new Promise((resolve, reject) =>
-        stream.write(buf_, err => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        })
-      )
   );
 }

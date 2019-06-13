@@ -6,7 +6,7 @@ import {
   SingleStatePureModel,
   ParentModel,
 } from './utils/models';
-import { Model, PureModel, Accessor } from '../src/react-model-store';
+import { Model, PureModel, Accessor } from '../src/react-model-store.dev';
 import {
   setCurrentMetaAsNull,
   setCurrentMetaAsNew,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStore } from '../src/react-model-store';
+import { createStore } from '../src/react-model-store.dev';
 import {
   IllegalHookModel,
   LowerModel,
@@ -26,7 +26,7 @@ describe('Hooks Tests', () => {
   });
 
   test('Should not call illigaly react hooks functions.', () => {
-    const Store = createStore(() => new IllegalHookModel());
+    const Store = createStore(IllegalHookModel);
 
     const Mock = jest.fn(() => {
       const model = Store.use();
@@ -46,8 +46,9 @@ describe('Hooks Tests', () => {
   });
 
   test('Models provided by lower provider can use models provided by higher provider.', () => {
-    const HigherStore = createStore(() => new SingleStateModel());
-    const LowerStore = createStore(() => new LowerModel(HigherStore));
+    class _Model extends LowerModel<SingleStateModel> {}
+    const HigherStore = createStore(SingleStateModel);
+    const LowerStore = createStore(_Model);
 
     const Mock = jest.fn(() => {
       let mountRender = false;
@@ -65,7 +66,7 @@ describe('Hooks Tests', () => {
     mount(
       <HigherStore.Provider>
         <div>
-          <LowerStore.Provider>
+          <LowerStore.Provider initialValue={HigherStore}>
             <div>
               <Mock />
             </div>
@@ -79,10 +80,11 @@ describe('Hooks Tests', () => {
 
   test('ref() method that wraps useRef() should get React element refs.', () => {
     let model: RefModel | null = null;
-    const Store = createStore(() => (model = new RefModel()));
-    const Mock = jest.fn(() => (
-      <input ref={Store.use().refInput} defaultValue={'input value'} />
-    )) as () => React.ReactElement;
+    const Store = createStore(RefModel);
+    const Mock = jest.fn(() => {
+      model = Store.use();
+      return <input ref={model!.refInput} defaultValue={'input value'} />;
+    }) as () => React.ReactElement;
     mount(
       <Store.Provider>
         <Mock />
@@ -97,10 +99,10 @@ describe('Hooks Tests', () => {
 
   test('Hook methods of ModelBase class should not be call after model objects have been initialized.', () => {
     let model: IllegalHookMethodModel | null = null;
-    const Store = createStore(() => (model = new IllegalHookMethodModel()));
+    const Store = createStore(IllegalHookMethodModel);
     shallow(
       <Store.Provider>
-        <div />
+        <Store.Consumer>{m => (model = m)}</Store.Consumer>
       </Store.Provider>
     );
     expect(() => model!.illegalHook()).toThrow();
