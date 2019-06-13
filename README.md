@@ -162,23 +162,22 @@ const TodoItem = createComponent(
   )
 );
 
-const App = () => {
-  const { logic: { todos } } = Store.use();
-  return (
+ReactDOM.render(  
+  <Store.Provider>
     <div>
       <ControlPanel />
       <ul>
-        {todos.map(todo => (
-          <TodoItem key={todo.key} initialValue={todo} />
-        ))}
+        <Store.Consumer>
+          {({ logic: { todos } }) =>
+            todos.map(todo => (
+              <li>
+                <TodoItem key={todo.key} initialValue={todo} />
+              </li>
+            ))
+          }
+        </Store.Consumer>
       </ul>
     </div>
-  );
-};
-
-ReactDOM.render(
-  <Store.Provider>
-    <App />
   </Store.Provider>,
   document.getElementById('root')
 );
