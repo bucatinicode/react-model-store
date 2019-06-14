@@ -21,6 +21,7 @@
   ],
   "scripts": {
     "clean": "rm -rf ./lib ./src/react-model-store.ts ./coverage",
+    "clean-all": "rm -rf ./lib ./src/react-model-store.ts ./coverage ./.cache ./.rts2_cache_* ./build ./node_modules",
     "format": "prettier --write **",
     "test": "jest",
     "coverage": "jest --coverage --collectCoverageFrom=./src/*",
@@ -29,6 +30,7 @@
     "example-timer": "node scripts/srcgen.js && parcel example/timer.html --out-dir build/example",
     "example-todo": "node scripts/srcgen.js && parcel example/todo.html --out-dir build/example",
     "example-chat": "node scripts/srcgen.js && parcel example/chat.html --out-dir build/example",
+    "srcgen": "node scripts/srcgen.js",
     "build": "node scripts/build.js",
     "build-example": "node scripts/build-example.js"
   },
