@@ -7,9 +7,23 @@ export type Event<TArgs extends any[]> = Action<TArgs> & {
   remove(listener: Action<TArgs>): boolean;
   clear(): void;
 };
-export interface ModelClass<TModel extends {}, TValue = void> {
-  new (initialValue: TValue): TModel;
-}
+export type ModelClass<TModel extends {}, TValue = void> = TValue extends void
+  ? {
+      new (): TModel;
+    }
+  : TValue extends undefined
+  ? {
+      new (initialValue?: TValue): TModel;
+    }
+  : {
+      new (initialValue: TValue): TModel;
+    };
+
+type InitialValue<TValue> = TValue extends void
+  ? {}
+  : TValue extends undefined
+  ? { initialValue?: TValue }
+  : { initialValue: TValue };
 
 interface Box<T> {
   inner: T;
@@ -402,10 +416,20 @@ function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
   return ref.current!;
 }
 
-export interface StoreProviderProps<TValue = void> {
-  initialValue?: TValue;
-  children: React.ReactNode;
+function newModel<TModel extends {}, TValue = void>(
+  modelClass: ModelClass<TModel, TValue>,
+  props: InitialValue<TValue>
+): TModel {
+  if (Object.prototype.hasOwnProperty.call(props, 'initialValue')) {
+    return new modelClass((props as { initialValue: TValue }).initialValue);
+  } else {
+    return new (modelClass as ModelClass<TModel, void>)();
+  }
 }
+
+export type StoreProviderProps<TValue = void> = InitialValue<TValue> & {
+  children?: React.ReactNode;
+};
 
 export interface StoreConsumerProps<TModel extends {}> {
   children: (model: TModel) => React.ReactNode;
@@ -432,7 +456,7 @@ export function createStore<TModel extends {}, TValue = void>(
   const Context = React.createContext<Box<TModel> | null>(null);
 
   const Provider = (props: StoreProviderProps<TValue>) => {
-    const model = resolveModel(() => new modelClass(props.initialValue!));
+    const model = resolveModel(() => newModel(modelClass, props));
     return React.createElement(
       Context.Provider,
       { value: { inner: model } },
@@ -465,9 +489,8 @@ export function createStore<TModel extends {}, TValue = void>(
   return { Provider, Consumer, use };
 }
 
-export type ModelComponentProps<TProps = {}, TValue = void> = TProps & {
-  initialValue?: TValue;
-};
+export type ModelComponentProps<TProps = {}, TValue = void> = TProps &
+  InitialValue<TValue>;
 
 /**
  * Create a function component that references a model object.
@@ -485,7 +508,7 @@ export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
   ) => React.ReactElement | null
 ): React.FunctionComponent<ModelComponentProps<TProps, TValue>> {
   return (p: ModelComponentProps<TProps, TValue>, ctx?: any) => {
-    const model = resolveModel(() => new modelClass(p.initialValue!));
+    const model = resolveModel(() => newModel(modelClass, p));
     return render(model, p, ctx);
   };
 }
