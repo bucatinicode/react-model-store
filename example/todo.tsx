@@ -68,14 +68,14 @@ class RootModel {
 }
 
 class TodoModel extends Model {
-  logic = this.use(Store).logic;
   todo: Todo;
   onRemoveClick: () => void;
 
   constructor(todo: Todo) {
     super();
     this.todo = todo;
-    this.onRemoveClick = this.logic.remove.bind(this.logic, todo.key);
+    const { logic } = this.use(Store);
+    this.onRemoveClick = logic.remove.bind(logic, todo.key);
   }
 }
 
