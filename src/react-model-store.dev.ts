@@ -260,9 +260,9 @@ export abstract class ModelBase {
 }
 
 /**
- * PureModel can only use functional getter/setter.
- * In case of using React Hooks from constructor of derived classes,
- * React Hooks functions must be called through the use of hook function.
+ * PureModel can only use functional state accessors.
+ * In case model objects are created frequently,
+ * PureModel objects are created at a lower cost than Model objects.
  */
 export abstract class PureModel extends ModelBase {
   /**
