@@ -250,7 +250,9 @@ export abstract class ModelBase {
       : ({ current: initialValue } as React.RefObject<T>);
   }
 
-  protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs> {
+  protected event<TArgs extends any[] = []>(
+    listener?: Action<TArgs>
+  ): Event<TArgs> {
     const e = createEventHandler<TArgs>();
     if (listener) {
       e.add(listener, this);

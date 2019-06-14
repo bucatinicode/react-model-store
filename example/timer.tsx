@@ -11,7 +11,7 @@ class RootModel extends Model {
 
   resetButton = this.ref<HTMLButtonElement>();
 
-  onReset = this.event<[]>();
+  onReset = this.event();
 
   onToggle = this.event(() => {
     this.running = !this.running;
