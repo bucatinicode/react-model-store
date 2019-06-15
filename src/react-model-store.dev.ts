@@ -250,10 +250,33 @@ export abstract class ModelBase {
       : ({ current: initialValue } as React.RefObject<T>);
   }
 
-  protected event<TArgs extends any[] = []>(
-    listener?: Action<TArgs>
-  ): Event<TArgs> {
-    const e = createEventHandler<TArgs>();
+  protected event(listener?: Action<[]>): Event<[]>;
+
+  protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs>;
+
+  protected event<T>(listener?: Action<[T]>): Event<[T]>;
+  protected event<T1, T2>(listener?: Action<[T1, T2]>): Event<[T1, T2]>;
+  protected event<T1, T2, T3>(
+    listener?: Action<[T1, T2, T3]>
+  ): Event<[T1, T2, T3]>;
+  protected event<T1, T2, T3, T4>(
+    listener?: Action<[T1, T2, T3, T4]>
+  ): Event<[T1, T2, T3, T4]>;
+  protected event<T1, T2, T3, T4, T5>(
+    listener?: Action<[T1, T2, T3, T4, T5]>
+  ): Event<[T1, T2, T3, T4, T5]>;
+  protected event<T1, T2, T3, T4, T5, T6>(
+    listener?: Action<[T1, T2, T3, T4, T5, T6]>
+  ): Event<[T1, T2, T3, T4, T5, T6]>;
+  protected event<T1, T2, T3, T4, T5, T6, T7>(
+    listener?: Action<[T1, T2, T3, T4, T5, T6, T7]>
+  ): Event<[T1, T2, T3, T4, T5, T6, T7]>;
+  protected event<T1, T2, T3, T4, T5, T6, T7, T8>(
+    listener?: Action<[T1, T2, T3, T4, T5, T6, T7, T8]>
+  ): Event<[T1, T2, T3, T4, T5, T6, T7, T8]>;
+
+  protected event(listener: Action<any[]>): Event<any[]> {
+    const e = createEventHandler<any[]>();
     if (listener) {
       e.add(listener, this);
     }

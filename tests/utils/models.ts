@@ -104,7 +104,7 @@ export class IllegalHookMethodModel extends Model {
 export class EventModel extends Model {
   count: number = 0;
   onClick = this.event(() => this.count++);
-  onChange = this.event<[React.ChangeEvent<HTMLInputElement>]>();
+  onChange = this.event<React.ChangeEvent<HTMLInputElement>>();
 }
 
 export class ListenerModel extends Model {

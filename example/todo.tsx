@@ -13,7 +13,7 @@ interface Todo {
 class ControlModel extends Model {
   textInput = this.ref<HTMLInputElement>();
   onAddClick = this.event();
-  onKeyPress = this.event<[React.KeyboardEvent<HTMLInputElement>]>();
+  onKeyPress = this.event<React.KeyboardEvent<HTMLInputElement>>();
 
   get text(): string {
     return this.textInput.current!.value;
