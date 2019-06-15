@@ -72,7 +72,7 @@ interface Todo {
 
 class ControlModel extends Model {
   textInput = this.ref<HTMLInputElement>();
-  onAddClick = this.event<[]>();
+  onAddClick = this.event();
   onKeyPress = this.event<[React.KeyboardEvent<HTMLInputElement>]>();
 
   get text(): string {
@@ -86,7 +86,7 @@ class ControlModel extends Model {
 }
 
 class LogicModel extends Model {
-  control: ControlModel;
+  private control: ControlModel;
   lastKey: number = this.state(0);
   todos: Todo[] = this.state([]);
 
@@ -128,29 +128,28 @@ class RootModel {
 }
 
 class TodoModel extends Model {
-  logic = this.use(Store).logic;
   todo: Todo;
   onRemoveClick: () => void;
 
   constructor(todo: Todo) {
     super();
     this.todo = todo;
-    this.onRemoveClick = this.logic.remove.bind(this.logic, todo.key);
+    const { logic } = this.use(RootModelStore);
+    this.onRemoveClick = logic.remove.bind(logic, todo.key);
   }
 }
 
-const Store = createStore(RootModel);
+const RootModelStore = createStore(RootModel);
 
-const ControlPanel = () => {
-  const { control: { textInput, onAddClick, onKeyPress } } = Store.use();
-
-  return (
+const ControlPanel = createComponent(
+  RootModelStore,
+  ({ control: { textInput, onAddClick, onKeyPress } }) => (
     <div>
       <input type='text' ref={textInput} onKeyPress={onKeyPress} />
       <button onClick={onAddClick}>Add</button>
     </div>
-  );
-};
+  )
+);
 
 const TodoItem = createComponent(
   TodoModel,
@@ -163,11 +162,11 @@ const TodoItem = createComponent(
 );
 
 ReactDOM.render(  
-  <Store.Provider>
+  <RootModelStore.Provider>
     <div>
       <ControlPanel />
       <ul>
-        <Store.Consumer>
+        <RootModelStore.Consumer>
           {({ logic: { todos } }) =>
             todos.map(todo => (
               <li>
@@ -175,10 +174,10 @@ ReactDOM.render(
               </li>
             ))
           }
-        </Store.Consumer>
+        </RootModelStore.Consumer>
       </ul>
     </div>
-  </Store.Provider>,
+  </RootModelStore.Provider>,
   document.getElementById('root')
 );
 ```
@@ -191,12 +190,12 @@ import ReactDOM from 'react-dom';
 import { Model, createComponent, createStore } from 'react-model-store';
 
 class RootModel extends Model {
-  // Store.Provider component is re-rendered when this state is changed.
+  // RootModelStore.Provider component is re-rendered when this state is changed.
   running = this.state(false);
 
   resetButton = this.ref<HTMLButtonElement>();
 
-  onReset = this.event<[]>();
+  onReset = this.event();
 
   onToggle = this.event(() => {
     this.running = !this.running;
@@ -208,10 +207,10 @@ class RootModel extends Model {
   }
 }
 
-const Store = createStore(RootModel);
+const RootModelStore = createStore(RootModel);
 
 class HighFrequencyTimerModel extends Model {
-  root = this.use(Store); // use RootModel
+  root = this.use(RootModelStore); // use RootModel
 
   // HighFrequencyTimer component is re-rendered when this state is changed.
   time = this.state(0);
@@ -256,20 +255,20 @@ const HighFrequencyTimer = createComponent(
   ({ time }) => <span>{(time / 1000).toFixed(2)}</span>
 );
 
-const Controller = () => {
-  const { onReset, onToggle, toggleText, resetButton } = Store.use();
-  return (
+const Controller = createComponent(
+  RootModelStore,
+  ({ onReset, onToggle, toggleText, resetButton }) => (
     <div>
       <button onClick={onToggle}>{toggleText}</button>
       <button onClick={onReset} ref={resetButton}>
         Reset
       </button>
     </div>
-  );
-};
+  )
+);
 
 ReactDOM.render(
-  <Store.Provider>
+  <RootModelStore.Provider>
     <div>
       <div>
         {/*
@@ -280,7 +279,7 @@ ReactDOM.render(
       </div>
       <Controller />
     </div>
-  </Store.Provider>,
+  </RootModelStore.Provider>,
   document.getElementById('root')
 );
 ```

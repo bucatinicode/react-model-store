@@ -6,7 +6,7 @@ import ReactDOM from 'react-dom';
 import { Model, createComponent, createStore } from '../src/react-model-store';
 
 class RootModel extends Model {
-  // Store.Provider component is re-rendered when this state is changed.
+  // RootModelStore.Provider component is re-rendered when this state is changed.
   running = this.state(false);
 
   resetButton = this.ref<HTMLButtonElement>();
@@ -23,10 +23,10 @@ class RootModel extends Model {
   }
 }
 
-const Store = createStore(RootModel);
+const RootModelStore = createStore(RootModel);
 
 class HighFrequencyTimerModel extends Model {
-  root = this.use(Store); // use RootModel
+  root = this.use(RootModelStore); // use RootModel
 
   // HighFrequencyTimer component is re-rendered when this state is changed.
   time = this.state(0);
@@ -71,22 +71,22 @@ const HighFrequencyTimer = createComponent(
   ({ time }) => <span>{(time / 1000).toFixed(2)}</span>
 );
 
-const Controller = () => {
-  const { onReset, onToggle, toggleText, resetButton } = Store.use();
-  return (
+const Controller = createComponent(
+  RootModelStore,
+  ({ onReset, onToggle, toggleText, resetButton }) => (
     <div>
       <button onClick={onToggle}>{toggleText}</button>
       <button onClick={onReset} ref={resetButton}>
         Reset
       </button>
     </div>
-  );
-};
+  )
+);
 
 ReactDOM.render(
   <div>
     <h2>Timer Example</h2>
-    <Store.Provider>
+    <RootModelStore.Provider>
       <div>
         <div>
           {/*
@@ -97,7 +97,7 @@ ReactDOM.render(
         </div>
         <Controller />
       </div>
-    </Store.Provider>
+    </RootModelStore.Provider>
   </div>,
   document.getElementById('root')
 );
