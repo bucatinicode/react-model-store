@@ -40,7 +40,7 @@ class RootModel extends Model {
 }
 
 class ChatViewModel extends Model {
-  root = this.use(RootStore);
+  root = this.use(RootModelStore);
   chats = this.state(this.root.chats);
 
   addChat = (_user: string, _message: string) => (this.chats = this.root.chats);
@@ -52,7 +52,7 @@ class ChatViewModel extends Model {
 }
 
 class ChatRoomModel extends Model {
-  root = this.use(RootStore);
+  root = this.use(RootModelStore);
   chats = this.state<Chat[]>([]);
   isFocus: boolean;
   user: string;
@@ -105,7 +105,7 @@ class ChatRoomModel extends Model {
   }
 }
 
-const RootStore = createStore(RootModel);
+const RootModelStore = createStore(RootModel);
 
 const ChatDisplay = (props: { chats: Chat[] }) => (
   <div>
@@ -171,8 +171,8 @@ const App = () => {
   const style = { marginLeft: 10, marginRight: 10 };
   return (
     <div>
-      {/* RootStore.Provider doesn't re-render, because RootModel has no state. */}
-      <RootStore.Provider>
+      {/* RootModelStore.Provider doesn't re-render, because RootModelStore has no state. */}
+      <RootModelStore.Provider>
         <div>
           <div style={{ display: 'flex' }}>
             <div style={style}>
@@ -186,7 +186,7 @@ const App = () => {
             </div>
           </div>
         </div>
-      </RootStore.Provider>
+      </RootModelStore.Provider>
     </div>
   );
 };

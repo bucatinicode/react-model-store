@@ -250,10 +250,33 @@ export abstract class ModelBase {
       : ({ current: initialValue } as React.RefObject<T>);
   }
 
-  protected event<TArgs extends any[] = []>(
-    listener?: Action<TArgs>
-  ): Event<TArgs> {
-    const e = createEventHandler<TArgs>();
+  protected event(listener?: Action<[]>): Event<[]>;
+
+  protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs>;
+
+  protected event<T>(listener?: Action<[T]>): Event<[T]>;
+  protected event<T1, T2>(listener?: Action<[T1, T2]>): Event<[T1, T2]>;
+  protected event<T1, T2, T3>(
+    listener?: Action<[T1, T2, T3]>
+  ): Event<[T1, T2, T3]>;
+  protected event<T1, T2, T3, T4>(
+    listener?: Action<[T1, T2, T3, T4]>
+  ): Event<[T1, T2, T3, T4]>;
+  protected event<T1, T2, T3, T4, T5>(
+    listener?: Action<[T1, T2, T3, T4, T5]>
+  ): Event<[T1, T2, T3, T4, T5]>;
+  protected event<T1, T2, T3, T4, T5, T6>(
+    listener?: Action<[T1, T2, T3, T4, T5, T6]>
+  ): Event<[T1, T2, T3, T4, T5, T6]>;
+  protected event<T1, T2, T3, T4, T5, T6, T7>(
+    listener?: Action<[T1, T2, T3, T4, T5, T6, T7]>
+  ): Event<[T1, T2, T3, T4, T5, T6, T7]>;
+  protected event<T1, T2, T3, T4, T5, T6, T7, T8>(
+    listener?: Action<[T1, T2, T3, T4, T5, T6, T7, T8]>
+  ): Event<[T1, T2, T3, T4, T5, T6, T7, T8]>;
+
+  protected event(listener: Action<any[]>): Event<any[]> {
+    const e = createEventHandler<any[]>();
     if (listener) {
       e.add(listener, this);
     }
@@ -488,15 +511,22 @@ export function createStore<TModel extends {}, TValue = void>(
     return box.inner;
   };
 
-  return { Provider, Consumer, use };
+  const store = {};
+
+  Object.defineProperties(store, {
+    Provider: { value: Provider },
+    Consumer: { value: Consumer },
+    use: { value: use },
+    _isStore: { value: true },
+  });
+
+  return store as Store<TModel, TValue>;
 }
 
-export type ModelComponentProps<TProps = {}, TValue = void> = TProps &
-  InitialValue<TValue>;
+export type ModelComponentProps<TProps, TValue> = TProps & InitialValue<TValue>;
 
 /**
- * Create a function component that references a model object.
- * It is useful when the model is referenced by only a created component.
+ * Create a function component that references a object of the given model class.
  * @param modelClass
  * @param render
  * @returns FunctionComponent
@@ -508,9 +538,43 @@ export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
     props: TProps,
     context?: any
   ) => React.ReactElement | null
-): React.FunctionComponent<ModelComponentProps<TProps, TValue>> {
-  return (p: ModelComponentProps<TProps, TValue>, ctx?: any) => {
-    const model = resolveModel(() => newModel(modelClass, p));
-    return render(model, p, ctx);
+): React.FunctionComponent<ModelComponentProps<TProps, TValue>>;
+
+/**
+ * Create a function component that references a model object provided from the given store.
+ * @param store
+ * @param render
+ * @returns FunctionComponent
+ */
+export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
+  store: Store<TModel, TValue>,
+  render: (
+    model: TModel,
+    props: TProps,
+    context?: any
+  ) => React.ReactElement | null
+): React.FunctionComponent<TProps>;
+
+export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
+  modelSource: any,
+  render: (
+    model: TModel,
+    props: TProps,
+    context?: any
+  ) => React.ReactElement | null
+): React.FunctionComponent<any> {
+  const resolve: (props: any) => TModel =
+    modelSource._isStore === true
+      ? () => (modelSource as Store<TModel, TValue>).use()
+      : (props: ModelComponentProps<TProps, TValue>) =>
+          resolveModel(() =>
+            newModel(
+              modelSource as ModelClass<TModel, TValue>,
+              props as InitialValue<TValue>
+            )
+          );
+  return (props: any, ctx?: any) => {
+    const model = resolve(props);
+    return render(model, props, ctx);
   };
 }

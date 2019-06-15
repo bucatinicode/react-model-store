@@ -13,7 +13,7 @@ interface Todo {
 class ControlModel extends Model {
   textInput = this.ref<HTMLInputElement>();
   onAddClick = this.event();
-  onKeyPress = this.event<[React.KeyboardEvent<HTMLInputElement>]>();
+  onKeyPress = this.event<React.KeyboardEvent<HTMLInputElement>>();
 
   get text(): string {
     return this.textInput.current!.value;
@@ -74,25 +74,22 @@ class TodoModel extends Model {
   constructor(todo: Todo) {
     super();
     this.todo = todo;
-    const { logic } = this.use(Store);
+    const { logic } = this.use(RootModelStore);
     this.onRemoveClick = logic.remove.bind(logic, todo.key);
   }
 }
 
-const Store = createStore(RootModel);
+const RootModelStore = createStore(RootModel);
 
-const ControlPanel = () => {
-  const {
-    control: { textInput, onAddClick, onKeyPress },
-  } = Store.use();
-
-  return (
+const ControlPanel = createComponent(
+  RootModelStore,
+  ({ control: { textInput, onAddClick, onKeyPress } }) => (
     <div>
       <input type='text' ref={textInput} onKeyPress={onKeyPress} />
       <button onClick={onAddClick}>Add</button>
     </div>
-  );
-};
+  )
+);
 
 const TodoItem = createComponent(
   TodoModel,
@@ -105,11 +102,11 @@ const TodoItem = createComponent(
 );
 
 const App = () => (
-  <Store.Provider>
+  <RootModelStore.Provider>
     <div>
       <ControlPanel />
       <ul>
-        <Store.Consumer>
+        <RootModelStore.Consumer>
           {({ logic: { todos } }) =>
             todos.map(todo => (
               <li>
@@ -117,10 +114,10 @@ const App = () => (
               </li>
             ))
           }
-        </Store.Consumer>
+        </RootModelStore.Consumer>
       </ul>
     </div>
-  </Store.Provider>
+  </RootModelStore.Provider>
 );
 
 ReactDOM.render(
