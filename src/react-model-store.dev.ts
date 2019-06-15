@@ -488,15 +488,22 @@ export function createStore<TModel extends {}, TValue = void>(
     return box.inner;
   };
 
-  return { Provider, Consumer, use };
+  const store = {};
+
+  Object.defineProperties(store, {
+    Provider: { value: Provider },
+    Consumer: { value: Consumer },
+    use: { value: use },
+    _isStore: { value: true },
+  });
+
+  return store as Store<TModel, TValue>;
 }
 
-export type ModelComponentProps<TProps = {}, TValue = void> = TProps &
-  InitialValue<TValue>;
+export type ModelComponentProps<TProps, TValue> = TProps & InitialValue<TValue>;
 
 /**
- * Create a function component that references a model object.
- * It is useful when the model is referenced by only a created component.
+ * Create a function component that references a object of the given model class.
  * @param modelClass
  * @param render
  * @returns FunctionComponent
@@ -508,9 +515,43 @@ export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
     props: TProps,
     context?: any
   ) => React.ReactElement | null
-): React.FunctionComponent<ModelComponentProps<TProps, TValue>> {
-  return (p: ModelComponentProps<TProps, TValue>, ctx?: any) => {
-    const model = resolveModel(() => newModel(modelClass, p));
-    return render(model, p, ctx);
+): React.FunctionComponent<ModelComponentProps<TProps, TValue>>;
+
+/**
+ * Create a function component that references a model object provided from the given store.
+ * @param store
+ * @param render
+ * @returns FunctionComponent
+ */
+export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
+  store: Store<TModel, TValue>,
+  render: (
+    model: TModel,
+    props: TProps,
+    context?: any
+  ) => React.ReactElement | null
+): React.FunctionComponent<TProps>;
+
+export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
+  modelSource: any,
+  render: (
+    model: TModel,
+    props: TProps,
+    context?: any
+  ) => React.ReactElement | null
+): React.FunctionComponent<any> {
+  const resolve: (props: any) => TModel =
+    modelSource._isStore === true
+      ? () => (modelSource as Store<TModel, TValue>).use()
+      : (props: ModelComponentProps<TProps, TValue>) =>
+          resolveModel(() =>
+            newModel(
+              modelSource as ModelClass<TModel, TValue>,
+              props as InitialValue<TValue>
+            )
+          );
+  return (props: any, ctx?: any) => {
+    const model = resolve(props);
+    return render(model, props, ctx);
   };
 }

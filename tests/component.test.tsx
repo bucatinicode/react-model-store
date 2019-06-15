@@ -5,7 +5,7 @@ import {
   IllegalHookMethodModel,
 } from './utils/models';
 import { mount } from 'enzyme';
-import { createComponent } from '../src/react-model-store.dev';
+import { createComponent, createStore } from '../src/react-model-store.dev';
 
 describe('Model Component Test', () => {
   let errorSpy: jest.SpyInstance | null = null;
@@ -83,6 +83,24 @@ describe('Model Component Test', () => {
     mount(<Mock />);
     expect(renderMock).toBeCalledTimes(1);
     expect(Mock).toBeCalledTimes(2);
+    expect(errorSpy).not.toBeCalled();
+  });
+
+  test('Should create a component that consume a model object.', () => {
+    const Store = createStore(SingleStateModel);
+    const renderMock = jest.fn((model: SingleStateModel) => {
+      expect(model.value).toBeTruthy();
+      return null;
+    }) as (model: SingleStateModel) => null;
+    const ConsumeComponent = createComponent(Store, renderMock);
+    mount(
+      <Store.Provider>
+        <div>
+          <ConsumeComponent />
+        </div>
+      </Store.Provider>
+    );
+    expect(renderMock).toBeCalledTimes(1);
     expect(errorSpy).not.toBeCalled();
   });
 });
