@@ -37,6 +37,22 @@ export type ModelTuple<TModelSourceTuple extends ModelSource[]> = {
     : never
 };
 
+export type StoreProviderProps<TValue = void> = InitialValue<TValue> & {
+  children?: React.ReactNode;
+};
+
+export interface StoreConsumerProps<TModel extends {}> {
+  children: (model: TModel) => React.ReactNode;
+}
+
+export interface Store<TModel extends {}, TValue = void> {
+  readonly Provider: React.FunctionComponent<StoreProviderProps<TValue>>;
+  readonly Consumer: React.FunctionComponent<StoreConsumerProps<TModel>>;
+  use(): TModel;
+}
+
+export type ModelComponentProps<TProps, TValue> = TProps & InitialValue<TValue>;
+
 type InitialValue<TValue> = TValue extends void
   ? {}
   : TValue extends undefined
@@ -470,20 +486,6 @@ function newModel<TModel extends {}, TValue = void>(
   }
 }
 
-export type StoreProviderProps<TValue = void> = InitialValue<TValue> & {
-  children?: React.ReactNode;
-};
-
-export interface StoreConsumerProps<TModel extends {}> {
-  children: (model: TModel) => React.ReactNode;
-}
-
-export interface Store<TModel extends {}, TValue = void> {
-  readonly Provider: React.FunctionComponent<StoreProviderProps<TValue>>;
-  readonly Consumer: React.FunctionComponent<StoreConsumerProps<TModel>>;
-  use(): TModel;
-}
-
 /**
  * Create a model store that wrapped Context API.
  * It is useful when nested components need to reference the model.
@@ -540,8 +542,6 @@ export function createStore<TModel extends {}, TValue = void>(
 
   return store as Store<TModel, TValue>;
 }
-
-export type ModelComponentProps<TProps, TValue> = TProps & InitialValue<TValue>;
 
 function createResolver<TProps>(source: any): (props: TProps) => any {
   return source._isStore === true
