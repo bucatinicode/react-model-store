@@ -108,7 +108,7 @@ Object.defineProperties(__META__, {
 
 // END DEVELOPMENT BLOCK
 
-function createEventHandler<TArgs extends any[]>(): Event<TArgs> {
+function createEvent<TArgs extends any[]>(): Event<TArgs> {
   const listenerMap = new Map<Action<TArgs>, ModelBase | null>();
 
   function event(...args: TArgs): void {
@@ -310,7 +310,7 @@ export abstract class ModelBase {
   ): Event<[T1, T2, T3, T4, T5, T6, T7, T8]>;
 
   protected event(listener?: Action<any[]>): Event<any[]> {
-    const e = createEventHandler<any[]>();
+    const e = createEvent<any[]>();
     if (listener) {
       e.add(listener, this);
     }
