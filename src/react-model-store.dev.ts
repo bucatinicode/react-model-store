@@ -19,6 +19,24 @@ export type ModelClass<TModel extends {}, TValue = void> = TValue extends void
       new (initialValue: TValue): TModel;
     };
 
+export type ModelSource<TModel extends {} = any, TValue = any> =
+  | ModelClass<TModel, TValue>
+  | Store<TModel, TValue>;
+
+export type ModelType<
+  TModelClass extends ModelSource
+> = TModelClass extends ModelClass<infer TModel, any>
+  ? TModel
+  : TModelClass extends Store<infer TModel, any>
+  ? TModel
+  : never;
+
+export type ModelTuple<TModelSourceTuple extends ModelSource[]> = {
+  [TIndex in keyof TModelSourceTuple]: TModelSourceTuple[TIndex] extends ModelSource
+    ? ModelType<TModelSourceTuple[TIndex]>
+    : never
+};
+
 type InitialValue<TValue> = TValue extends void
   ? {}
   : TValue extends undefined
@@ -525,6 +543,15 @@ export function createStore<TModel extends {}, TValue = void>(
 
 export type ModelComponentProps<TProps, TValue> = TProps & InitialValue<TValue>;
 
+function createResolver<TProps>(source: any): (props: TProps) => any {
+  return source._isStore === true
+    ? () => (source as Store<any, any>).use()
+    : (props: ModelComponentProps<TProps, any>) =>
+        resolveModel(() =>
+          newModel(source as ModelClass<any, any>, props as InitialValue<any>)
+        );
+}
+
 /**
  * Create a function component that references a object of the given model class.
  * @param modelClass
@@ -555,26 +582,63 @@ export function createComponent<TModel extends {}, TProps = {}>(
   ) => React.ReactElement | null
 ): React.FunctionComponent<TProps>;
 
-export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
+/**
+ * Create a function component that references multiple model objects.
+ * @param modelSources
+ * @param render
+ * @returns FunctionComponent
+ */
+export function createComponent<
+  TModelSourceTuple extends [ModelClass<any, any>, ...ModelSource[]],
+  TProps = {},
+  TValue = TModelSourceTuple[0] extends ModelClass<any, infer T> ? T : never
+>(
+  modelSources: TModelSourceTuple,
+  render: (
+    mdoels: ModelTuple<TModelSourceTuple>,
+    props: TProps,
+    context?: any
+  ) => React.ReactElement | null
+): React.FunctionComponent<ModelComponentProps<TProps, TValue>>;
+
+/**
+ * Create a function component that references multiple model objects.
+ * @param modelSources
+ * @param render
+ * @returns FunctionComponent
+ */
+export function createComponent<
+  TModelSourceTuple extends ModelSource[],
+  TProps = {}
+>(
+  modelSources: TModelSourceTuple,
+  render: (
+    models: ModelTuple<TModelSourceTuple>,
+    props: TProps,
+    context?: any
+  ) => React.ReactElement | null
+): React.FunctionComponent<TProps>;
+
+export function createComponent<TProps = {}>(
   modelSource: any,
   render: (
-    model: TModel,
+    model: any,
     props: TProps,
     context?: any
   ) => React.ReactElement | null
 ): React.FunctionComponent<any> {
-  const resolve: (props: any) => TModel =
-    modelSource._isStore === true
-      ? () => (modelSource as Store<TModel, TValue>).use()
-      : (props: ModelComponentProps<TProps, TValue>) =>
-          resolveModel(() =>
-            newModel(
-              modelSource as ModelClass<TModel, TValue>,
-              props as InitialValue<TValue>
-            )
-          );
+  let resolver: (props: TProps) => any;
+  if (Array.isArray(modelSource)) {
+    if (modelSource.length === 0) {
+      throw new Error('modelSource must not be empty');
+    }
+    const resolvers = modelSource.map(source => createResolver<TProps>(source));
+    resolver = (props: TProps) => resolvers.map(resolve => resolve(props));
+  } else {
+    resolver = createResolver<TProps>(modelSource);
+  }
   return (props: any, ctx?: any) => {
-    const model = resolve(props);
+    const model = resolver(props);
     return render(model, props, ctx);
   };
 }
