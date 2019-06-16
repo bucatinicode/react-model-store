@@ -1,6 +1,6 @@
 {
   "name": "react-model-store",
-  "version": "0.3.4-dev",
+  "version": "0.3.5-dev",
   "description": "The simple state management library for React",
   "source": "src/react-model-store.ts",
   "main": "lib/react-model-store.js",
