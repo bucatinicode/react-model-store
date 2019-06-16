@@ -250,7 +250,7 @@ export abstract class ModelBase {
       : ({ current: initialValue } as React.RefObject<T>);
   }
 
-  protected event(listener?: Action<[]>): Event<[]>;
+  protected event(): Event<[]>;
 
   protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs>;
 
@@ -275,7 +275,7 @@ export abstract class ModelBase {
     listener?: Action<[T1, T2, T3, T4, T5, T6, T7, T8]>
   ): Event<[T1, T2, T3, T4, T5, T6, T7, T8]>;
 
-  protected event(listener: Action<any[]>): Event<any[]> {
+  protected event(listener?: Action<any[]>): Event<any[]> {
     const e = createEventHandler<any[]>();
     if (listener) {
       e.add(listener, this);
@@ -546,8 +546,8 @@ export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
  * @param render
  * @returns FunctionComponent
  */
-export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
-  store: Store<TModel, TValue>,
+export function createComponent<TModel extends {}, TProps = {}>(
+  store: Store<TModel, any>,
   render: (
     model: TModel,
     props: TProps,
