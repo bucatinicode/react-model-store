@@ -7,7 +7,7 @@ export type Event<TArgs extends any[]> = Action<TArgs> & {
   remove(listener: Action<TArgs>): boolean;
   clear(): void;
 };
-export type ModelClass<TModel extends {}, TValue = void> = TValue extends void
+export type ModelClass<TModel extends {}, TValue> = TValue extends void
   ? {
       new (): TModel;
     }
@@ -18,6 +18,40 @@ export type ModelClass<TModel extends {}, TValue = void> = TValue extends void
   : {
       new (initialValue: TValue): TModel;
     };
+
+export type ModelSource<TModel extends {} = any, TValue = any> =
+  | ModelClass<TModel, TValue>
+  | Store<TModel, TValue>;
+
+export type ModelType<
+  TModelClass extends ModelSource
+> = TModelClass extends ModelClass<infer TModel, any>
+  ? TModel
+  : TModelClass extends Store<infer TModel, any>
+  ? TModel
+  : never;
+
+export type ModelTuple<TModelSourceTuple extends ModelSource[]> = {
+  [TIndex in keyof TModelSourceTuple]: TModelSourceTuple[TIndex] extends ModelSource
+    ? ModelType<TModelSourceTuple[TIndex]>
+    : never
+};
+
+export type StoreProviderProps<TValue = void> = InitialValue<TValue> & {
+  children?: React.ReactNode;
+};
+
+export interface StoreConsumerProps<TModel extends {}> {
+  children: (model: TModel) => React.ReactNode;
+}
+
+export interface Store<TModel extends {}, TValue = void> {
+  readonly Provider: React.FunctionComponent<StoreProviderProps<TValue>>;
+  readonly Consumer: React.FunctionComponent<StoreConsumerProps<TModel>>;
+  use(): TModel;
+}
+
+export type ModelComponentProps<TProps, TValue = void> = TProps & InitialValue<TValue>;
 
 type InitialValue<TValue> = TValue extends void
   ? {}
@@ -74,7 +108,7 @@ Object.defineProperties(__META__, {
 
 // END DEVELOPMENT BLOCK
 
-function createEventHandler<TArgs extends any[]>(): Event<TArgs> {
+function createEvent<TArgs extends any[]>(): Event<TArgs> {
   const listenerMap = new Map<Action<TArgs>, ModelBase | null>();
 
   function event(...args: TArgs): void {
@@ -250,7 +284,7 @@ export abstract class ModelBase {
       : ({ current: initialValue } as React.RefObject<T>);
   }
 
-  protected event(listener?: Action<[]>): Event<[]>;
+  protected event(): Event<[]>;
 
   protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs>;
 
@@ -275,8 +309,8 @@ export abstract class ModelBase {
     listener?: Action<[T1, T2, T3, T4, T5, T6, T7, T8]>
   ): Event<[T1, T2, T3, T4, T5, T6, T7, T8]>;
 
-  protected event(listener: Action<any[]>): Event<any[]> {
-    const e = createEventHandler<any[]>();
+  protected event(listener?: Action<any[]>): Event<any[]> {
+    const e = createEvent<any[]>();
     if (listener) {
       e.add(listener, this);
     }
@@ -441,7 +475,7 @@ function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
   return ref.current!;
 }
 
-function newModel<TModel extends {}, TValue = void>(
+function newModel<TModel extends {}, TValue>(
   modelClass: ModelClass<TModel, TValue>,
   props: InitialValue<TValue>
 ): TModel {
@@ -450,20 +484,6 @@ function newModel<TModel extends {}, TValue = void>(
   } else {
     return new (modelClass as ModelClass<TModel, void>)();
   }
-}
-
-export type StoreProviderProps<TValue = void> = InitialValue<TValue> & {
-  children?: React.ReactNode;
-};
-
-export interface StoreConsumerProps<TModel extends {}> {
-  children: (model: TModel) => React.ReactNode;
-}
-
-export interface Store<TModel extends {}, TValue = void> {
-  readonly Provider: React.FunctionComponent<StoreProviderProps<TValue>>;
-  readonly Consumer: React.FunctionComponent<StoreConsumerProps<TModel>>;
-  use(): TModel;
 }
 
 /**
@@ -523,7 +543,14 @@ export function createStore<TModel extends {}, TValue = void>(
   return store as Store<TModel, TValue>;
 }
 
-export type ModelComponentProps<TProps, TValue> = TProps & InitialValue<TValue>;
+function createResolver<TProps>(source: any): (props: TProps) => any {
+  return source._isStore === true
+    ? () => (source as Store<any, any>).use()
+    : (props: ModelComponentProps<TProps, any>) =>
+        resolveModel(() =>
+          newModel(source as ModelClass<any, any>, props as InitialValue<any>)
+        );
+}
 
 /**
  * Create a function component that references a object of the given model class.
@@ -546,8 +573,8 @@ export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
  * @param render
  * @returns FunctionComponent
  */
-export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
-  store: Store<TModel, TValue>,
+export function createComponent<TModel extends {}, TProps = {}>(
+  store: Store<TModel, any>,
   render: (
     model: TModel,
     props: TProps,
@@ -555,26 +582,63 @@ export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
   ) => React.ReactElement | null
 ): React.FunctionComponent<TProps>;
 
-export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
+/**
+ * Create a function component that references multiple model objects.
+ * @param modelSources
+ * @param render
+ * @returns FunctionComponent
+ */
+export function createComponent<
+  TModelSourceTuple extends [ModelClass<any, any>, ...ModelSource[]],
+  TProps = {},
+  TValue = TModelSourceTuple[0] extends ModelClass<any, infer T> ? T : never
+>(
+  modelSources: TModelSourceTuple,
+  render: (
+    mdoels: ModelTuple<TModelSourceTuple>,
+    props: TProps,
+    context?: any
+  ) => React.ReactElement | null
+): React.FunctionComponent<ModelComponentProps<TProps, TValue>>;
+
+/**
+ * Create a function component that references multiple model objects.
+ * @param modelSources
+ * @param render
+ * @returns FunctionComponent
+ */
+export function createComponent<
+  TModelSourceTuple extends ModelSource[],
+  TProps = {}
+>(
+  modelSources: TModelSourceTuple,
+  render: (
+    models: ModelTuple<TModelSourceTuple>,
+    props: TProps,
+    context?: any
+  ) => React.ReactElement | null
+): React.FunctionComponent<TProps>;
+
+export function createComponent<TProps>(
   modelSource: any,
   render: (
-    model: TModel,
+    model: any,
     props: TProps,
     context?: any
   ) => React.ReactElement | null
 ): React.FunctionComponent<any> {
-  const resolve: (props: any) => TModel =
-    modelSource._isStore === true
-      ? () => (modelSource as Store<TModel, TValue>).use()
-      : (props: ModelComponentProps<TProps, TValue>) =>
-          resolveModel(() =>
-            newModel(
-              modelSource as ModelClass<TModel, TValue>,
-              props as InitialValue<TValue>
-            )
-          );
+  let resolver: (props: TProps) => any;
+  if (Array.isArray(modelSource)) {
+    if (modelSource.length === 0) {
+      throw new Error('modelSource must not be empty');
+    }
+    const resolvers = modelSource.map(source => createResolver<TProps>(source));
+    resolver = (props: TProps) => resolvers.map(resolve => resolve(props));
+  } else {
+    resolver = createResolver<TProps>(modelSource);
+  }
   return (props: any, ctx?: any) => {
-    const model = resolve(props);
+    const model = resolver(props);
     return render(model, props, ctx);
   };
 }

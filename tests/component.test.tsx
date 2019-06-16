@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   SingleStateModel,
+  SingleStatePureModel,
   HasInitailValueModel,
   IllegalHookMethodModel,
 } from './utils/models';
@@ -86,7 +87,7 @@ describe('Model Component Test', () => {
     expect(errorSpy).not.toBeCalled();
   });
 
-  test('Should create a component that consume a model object.', () => {
+  test('Should create components that consume a model object.', () => {
     const Store = createStore(SingleStateModel);
     const renderMock = jest.fn((model: SingleStateModel) => {
       expect(model.value).toBeTruthy();
@@ -99,6 +100,42 @@ describe('Model Component Test', () => {
           <ConsumeComponent />
         </div>
       </Store.Provider>
+    );
+    expect(renderMock).toBeCalledTimes(1);
+    expect(errorSpy).not.toBeCalled();
+  });
+
+  test('Should create components that consume multiple model objests.', () => {
+    type ModelTuple = [
+      HasInitailValueModel,
+      SingleStateModel,
+      SingleStatePureModel
+    ];
+    const INITIAL_VALUE = 'initial value';
+    const ModelStore = createStore(SingleStateModel);
+    const PureModelStore = createStore(SingleStatePureModel);
+
+    const renderMock = jest.fn((models: ModelTuple) => {
+      const [model1, model2, model3] = models;
+      expect(model1.value).toBe(INITIAL_VALUE);
+      expect(model2.value).toBe(true);
+      expect(model3.value()).toBe(true);
+      return null;
+    }) as (models: ModelTuple) => null;
+
+    expect(() => createComponent([], () => null)).toThrow();
+
+    const Component = createComponent(
+      [HasInitailValueModel, ModelStore, PureModelStore],
+      renderMock
+    );
+
+    mount(
+      <ModelStore.Provider>
+        <PureModelStore.Provider>
+          <Component initialValue={INITIAL_VALUE} />
+        </PureModelStore.Provider>
+      </ModelStore.Provider>
     );
     expect(renderMock).toBeCalledTimes(1);
     expect(errorSpy).not.toBeCalled();
