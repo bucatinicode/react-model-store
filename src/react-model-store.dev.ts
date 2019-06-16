@@ -7,7 +7,7 @@ export type Event<TArgs extends any[]> = Action<TArgs> & {
   remove(listener: Action<TArgs>): boolean;
   clear(): void;
 };
-export type ModelClass<TModel extends {}, TValue = void> = TValue extends void
+export type ModelClass<TModel extends {}, TValue> = TValue extends void
   ? {
       new (): TModel;
     }
@@ -51,7 +51,7 @@ export interface Store<TModel extends {}, TValue = void> {
   use(): TModel;
 }
 
-export type ModelComponentProps<TProps, TValue> = TProps & InitialValue<TValue>;
+export type ModelComponentProps<TProps, TValue = void> = TProps & InitialValue<TValue>;
 
 type InitialValue<TValue> = TValue extends void
   ? {}
@@ -475,7 +475,7 @@ function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
   return ref.current!;
 }
 
-function newModel<TModel extends {}, TValue = void>(
+function newModel<TModel extends {}, TValue>(
   modelClass: ModelClass<TModel, TValue>,
   props: InitialValue<TValue>
 ): TModel {
@@ -619,7 +619,7 @@ export function createComponent<
   ) => React.ReactElement | null
 ): React.FunctionComponent<TProps>;
 
-export function createComponent<TProps = {}>(
+export function createComponent<TProps>(
   modelSource: any,
   render: (
     model: any,
