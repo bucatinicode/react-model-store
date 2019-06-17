@@ -26,10 +26,10 @@ export type ModelSource<TModel extends {} = any, TValue = any> =
   | Store<TModel, TValue>;
 
 export type ModelType<
-  TModelClass extends ModelSource
-> = TModelClass extends ModelClass<infer TModel, any>
+  TModelSource extends ModelSource
+> = TModelSource extends ModelClass<infer TModel, any>
   ? TModel
-  : TModelClass extends Store<infer TModel, any>
+  : TModelSource extends Store<infer TModel, any>
   ? TModel
   : never;
 
