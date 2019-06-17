@@ -592,7 +592,7 @@ export function createComponent<
 >(
   modelSources: TModelSourceTuple,
   render: (
-    mdoels: ModelTuple<TModelSourceTuple>,
+    models: ModelTuple<TModelSourceTuple>,
     props: TProps,
     context?: any
   ) => React.ReactElement | null
