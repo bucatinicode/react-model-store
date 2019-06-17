@@ -116,7 +116,7 @@ function createEvent<TArgs extends any[]>(): Event<TArgs> {
 
   function add(listener: Action<TArgs>, dep?: ModelBase): boolean {
     if (dep && !(dep as any).mounted) {
-      throw new Error('Unmounted model objects cannot add event listener');
+      throw new Error('Cannot add event listener to unmounted model objects');
     }
     if (listenerMap.has(listener)) {
       return false;
@@ -184,7 +184,7 @@ function createStateAccessor<T extends any>(
 ): Accessor<T> {
   if (meta.finalized) {
     throw new Error(
-      'createStateAccessor() must be called from constructors of classes that extend Model or PureModel'
+      'createStateAccessor() must be called from constructors of classes that extend ModelBase'
     );
   }
 
@@ -225,7 +225,7 @@ export abstract class ModelBase {
   constructor() {
     if (!current.meta) {
       throw new Error(
-        'Model constructors must be called from createModel argument of createStore() function.'
+        'ModelBase constructor must be called from Provider of Store created by createStore() or Component created by createComponent().'
       );
     }
     this._meta = current.meta;
@@ -261,7 +261,7 @@ export abstract class ModelBase {
   protected hook<T = void>(useHook: () => T): T {
     if (this._meta.finalized) {
       throw new Error(
-        'hook() must be called from constructors of Model classes'
+        'hook() must be called from the constructor of classes that extend ModelBase'
       );
     }
     const result = useHook();
