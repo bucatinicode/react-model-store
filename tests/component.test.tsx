@@ -4,9 +4,14 @@ import {
   SingleStatePureModel,
   HasInitailValueModel,
   IllegalHookMethodModel,
+  EmptyModel,
 } from './utils/models';
-import { mount } from 'enzyme';
-import { createComponent, createStore } from '../src/react-model-store.dev';
+import { mount, shallow } from 'enzyme';
+import {
+  createComponent,
+  createStore,
+  Model,
+} from '../src/react-model-store.dev';
 
 describe('Model Component Test', () => {
   let errorSpy: jest.SpyInstance | null = null;
@@ -139,5 +144,86 @@ describe('Model Component Test', () => {
     );
     expect(renderMock).toBeCalledTimes(1);
     expect(errorSpy).not.toBeCalled();
+  });
+
+  test('Type inference test', () => {
+    class OptionModel extends Model {
+      constructor(_?: string) {
+        super();
+      }
+    }
+
+    class RequireModel extends Model {
+      constructor(_: string) {
+        super();
+      }
+    }
+
+    class OptionUnkonwnModel extends Model {
+      constructor(_?: unknown) {
+        super();
+      }
+    }
+
+    class RequireUnknownModel extends Model {
+      constructor(_: unknown) {
+        super();
+      }
+    }
+
+    const Empty = createComponent(EmptyModel, () => null);
+    const Option = createComponent(OptionModel, () => null);
+    const Require = createComponent(RequireModel, () => null);
+    const OptionUnknown = createComponent(OptionUnkonwnModel, () => null);
+    const RequireUnknown = createComponent(RequireUnknownModel, () => null);
+    const EmptyTuple = createComponent([EmptyModel], () => null);
+    const OptionTuple = createComponent([OptionModel], () => null);
+    const RequireTuple = createComponent([RequireModel], () => null);
+    const OptionUnknownTuple = createComponent(
+      [OptionUnkonwnModel],
+      () => null
+    );
+    const RequireUnknownTuple = createComponent(
+      [RequireUnknownModel],
+      () => null
+    );
+
+    const empties: React.FC<{}>[] = [Empty];
+    const options: React.FC<{} | { initialValue: string }>[] = [
+      Option,
+      OptionTuple,
+    ];
+    const requires: React.FC<{ initialValue: string }>[] = [
+      Require,
+      RequireTuple,
+    ];
+    const unknowns: React.FC<{} | { initialValue: unknown }>[] = [
+      OptionUnknown,
+      RequireUnknown,
+      EmptyTuple,
+      OptionUnknownTuple,
+      RequireUnknownTuple,
+    ];
+
+    empties.forEach(Component => {
+      shallow(<Component />);
+      // shallow(<Component initialValue=''/>);
+      // shallow(<Component initialValue={0}/>);
+    });
+    options.forEach(Component => {
+      shallow(<Component />);
+      shallow(<Component initialValue='' />);
+      // shallow(<Component initialValue={0}/>);
+    });
+    requires.forEach(Component => {
+      // shallow(<Component />);
+      shallow(<Component initialValue='' />);
+      // shallow(<Component initialValue={0}/>);
+    });
+    unknowns.forEach(Component => {
+      shallow(<Component />);
+      shallow(<Component initialValue='' />);
+      shallow(<Component initialValue={0} />);
+    });
   });
 });
