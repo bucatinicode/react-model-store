@@ -11,13 +11,15 @@ export type ModelClass<TModel extends {}, TValue> = TValue extends void
   ? {
       new (): TModel;
     }
-  : TValue extends undefined
-  ? {
-      new (initialValue?: TValue): TModel;
-    }
   : {
       new (initialValue: TValue): TModel;
     };
+
+type InitialValue<TValue> = TValue extends void
+  ? {}
+  : unknown extends TValue
+  ? { initialValue?: TValue }
+  : { initialValue: TValue };
 
 export type ModelSource<TModel extends {} = any, TValue = any> =
   | ModelClass<TModel, TValue>
@@ -51,13 +53,8 @@ export interface Store<TModel extends {}, TValue = void> {
   use(): TModel;
 }
 
-export type ModelComponentProps<TProps, TValue = void> = TProps & InitialValue<TValue>;
-
-type InitialValue<TValue> = TValue extends void
-  ? {}
-  : TValue extends undefined
-  ? { initialValue?: TValue }
-  : { initialValue: TValue };
+export type ModelComponentProps<TProps, TValue = void> = TProps &
+  InitialValue<TValue>;
 
 interface Box<T> {
   inner: T;
