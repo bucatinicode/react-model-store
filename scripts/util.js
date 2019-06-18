@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
+const { YEAR } = require('./constants');
 const paths = require('./paths');
 
 const RE_START = /^\s*\/{2,3}\s*START\s*DEVELOPMENT\s*BLOCK\s*$/;
@@ -20,11 +21,41 @@ const rmall = (exports.rmall = function(path_) {
   }
 });
 
+function readPackage() {
+  'use strict';
+
+  const data = fs.readFileSync(paths.packageFile, { encoding: 'utf8' });
+  return JSON.parse(data);
+}
+
+function createSrcHeader(pkg) {
+  const author = pkg.author || '';
+  const license = pkg.license || '';
+  let year = new Date().getUTCFullYear();
+  year = year > YEAR ? `${YEAR}-${year}` : `${year}`;
+  let description = '';
+  if (pkg.amdName) {
+    description += pkg.amdName;
+  }
+  if (pkg.version) {
+    description += ` v${pkg.version}`;
+  }
+  return `/**
+ * @license ${description}
+ * (c) ${year} ${author}
+ * License: ${license}
+ */
+
+`;
+}
+
 exports.generateSrcFile = function() {
   'use strict';
 
+  let pkg;
   let writeStream;
   try {
+    pkg = readPackage();
     if (fs.existsSync(paths.releaseSrcFile)) {
       rmall(paths.releaseSrcFile);
     }
@@ -50,6 +81,9 @@ exports.generateSrcFile = function() {
           )
       );
     }
+
+    const header = createSrcHeader(pkg);
+    write(header);
 
     const readStream = fs.createReadStream(paths.developmentSrcFile, {
       encoding: 'utf8',
