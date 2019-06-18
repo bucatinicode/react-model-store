@@ -23,13 +23,13 @@ type InitialValue<TValue> = TValue extends void
 
 export type ModelSource<TModel extends {} = any, TValue = any> =
   | ModelClass<TModel, TValue>
-  | Store<TModel, TValue>;
+  | Consumable<TModel>;
 
 export type ModelType<
   TModelSource extends ModelSource
 > = TModelSource extends ModelClass<infer TModel, any>
   ? TModel
-  : TModelSource extends Store<infer TModel, any>
+  : TModelSource extends Consumable<infer TModel>
   ? TModel
   : never;
 
@@ -47,10 +47,15 @@ export interface StoreConsumerProps<TModel extends {}> {
   children: (model: TModel) => React.ReactNode;
 }
 
-export interface Store<TModel extends {}, TValue = void> {
-  readonly Provider: React.FunctionComponent<StoreProviderProps<TValue>>;
+export interface Consumable<TModel extends {}> {
   readonly Consumer: React.FunctionComponent<StoreConsumerProps<TModel>>;
   use(): TModel;
+}
+
+export interface Store<TModel extends {}, TValue = void>
+  extends Consumable<TModel> {
+  readonly Provider: React.FunctionComponent<StoreProviderProps<TValue>>;
+  toConsumable(): Consumable<TModel>;
 }
 
 export type ModelComponentProps<TProps, TValue = void> = TProps &
@@ -269,9 +274,7 @@ export abstract class ModelBase {
     return result;
   }
 
-  protected use<TModel extends {}, TValue = void>(
-    store: Store<TModel, TValue>
-  ): TModel {
+  protected use<TModel extends {}>(store: Consumable<TModel>): TModel {
     return this.hook(() => store.use());
   }
 
@@ -528,21 +531,31 @@ export function createStore<TModel extends {}, TValue = void>(
     return box.inner;
   };
 
-  const store = {};
+  const toConsumable = () => {
+    const consumable = {};
+
+    Object.defineProperties(consumable, {
+      Consumer: { value: Consumer },
+      use: { value: use },
+      _isConsumable: { value: true },
+    });
+
+    return consumable as Consumable<TModel>;
+  };
+
+  const store = toConsumable();
 
   Object.defineProperties(store, {
     Provider: { value: Provider },
-    Consumer: { value: Consumer },
-    use: { value: use },
-    _isStore: { value: true },
+    toConsumable: { value: toConsumable },
   });
 
   return store as Store<TModel, TValue>;
 }
 
 function createResolver<TProps>(source: any): (props: TProps) => any {
-  return source._isStore === true
-    ? () => (source as Store<any, any>).use()
+  return source._isConsumable === true
+    ? () => (source as Consumable<any>).use()
     : (props: ModelComponentProps<TProps, any>) =>
         resolveModel(() =>
           newModel(source as ModelClass<any, any>, props as InitialValue<any>)
@@ -571,7 +584,7 @@ export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
  * @returns FunctionComponent
  */
 export function createComponent<TModel extends {}, TProps = {}>(
-  store: Store<TModel, any>,
+  store: Consumable<TModel>,
   render: (
     model: TModel,
     props: TProps,

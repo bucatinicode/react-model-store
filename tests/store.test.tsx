@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStore } from '../src/react-model-store.dev';
+import { createStore, createComponent } from '../src/react-model-store.dev';
 import {
   SingleStateModel,
   EmptyModel,
@@ -7,6 +7,7 @@ import {
   ParentModel,
   MountModel,
   UndefinableStateModel,
+  LowerModel,
 } from './utils/models';
 import { shallow, mount } from 'enzyme';
 import {
@@ -252,5 +253,42 @@ describe('Store Tests', () => {
       </Store.Provider>
     );
     expect(Mock).toBeCalledTimes(2);
+  });
+
+  test('toConsumable() should create consume only Store.', () => {
+    class TestLowerModel extends LowerModel<SingleStateModel> {}
+    const HigherStore = createStore(SingleStateModel);
+    const HigherConsumable = HigherStore.toConsumable();
+
+    expect(
+      Object.prototype.hasOwnProperty.call(HigherConsumable, 'Provider')
+    ).toBeFalsy();
+    expect(
+      Object.prototype.hasOwnProperty.call(HigherConsumable, 'toConsumable')
+    ).toBeFalsy();
+
+    const renderMock = jest.fn((model: TestLowerModel) => {
+      expect(model.higher.value).toBeTruthy();
+      return null;
+    }) as (model: TestLowerModel) => null;
+
+    const Lower = createComponent(TestLowerModel, renderMock);
+
+    mount(
+      <HigherStore.Provider>
+        <div>
+          <HigherConsumable.Consumer>
+            {model => {
+              expect(model.value).toBeTruthy();
+              return null;
+            }}
+          </HigherConsumable.Consumer>
+          <Lower initialValue={HigherConsumable} />
+        </div>
+      </HigherStore.Provider>
+    );
+
+    expect(renderMock).toBeCalledTimes(1);
+    expect(errorSpy!).not.toBeCalled();
   });
 });
