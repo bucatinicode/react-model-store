@@ -253,6 +253,7 @@ describe('Store Tests', () => {
       </Store.Provider>
     );
     expect(Mock).toBeCalledTimes(2);
+    expect(errorSpy!).not.toBeCalled();
   });
 
   test('toConsumable() should create consume only Store.', () => {

@@ -46,9 +46,9 @@ describe('Hooks Tests', () => {
   });
 
   test('Models provided by lower provider can use models provided by higher provider.', () => {
-    class _Model extends LowerModel<SingleStateModel> {}
+    class TestLowerModel extends LowerModel<SingleStateModel> {}
     const HigherStore = createStore(SingleStateModel);
-    const LowerStore = createStore(_Model);
+    const LowerStore = createStore(TestLowerModel);
 
     const Mock = jest.fn(() => {
       let mountRender = false;
