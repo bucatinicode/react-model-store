@@ -48,14 +48,21 @@ export interface StoreConsumerProps<TModel extends {}> {
 }
 
 export interface Consumable<TModel extends {}> {
-  readonly Consumer: React.FunctionComponent<StoreConsumerProps<TModel>>;
   use(): TModel;
 }
 
+export type StoreProvider<TValue = void> = React.FunctionComponent<
+  StoreProviderProps<TValue>
+>;
+export type StoreConsumer<TModel extends {}> = React.FunctionComponent<
+  StoreConsumerProps<TModel>
+> &
+  Consumable<TModel>;
+
 export interface Store<TModel extends {}, TValue = void>
   extends Consumable<TModel> {
-  readonly Provider: React.FunctionComponent<StoreProviderProps<TValue>>;
-  toConsumable(): Consumable<TModel>;
+  readonly Provider: StoreProvider<TValue>;
+  readonly Consumer: StoreConsumer<TModel>;
 }
 
 export type ModelComponentProps<TProps, TValue = void> = TProps &
@@ -526,28 +533,23 @@ export function createStore<TModel extends {}, TValue = void>(
   const use = () => {
     const box = React.useContext(Context);
     if (box === null) {
-      throw new Error('Store.use() must be wrapped with <Store.Provider>');
+      throw new Error('Consumable.use() must be wrapped with <Store.Provider>');
     }
     return box.inner;
   };
 
-  const toConsumable = () => {
-    const consumable = {};
+  Object.defineProperties(Consumer, {
+    use: { value: use },
+    _isConsumable: { value: true },
+  });
 
-    Object.defineProperties(consumable, {
-      Consumer: { value: Consumer },
-      use: { value: use },
-      _isConsumable: { value: true },
-    });
-
-    return consumable as Consumable<TModel>;
-  };
-
-  const store = toConsumable();
+  const store = {};
 
   Object.defineProperties(store, {
     Provider: { value: Provider },
-    toConsumable: { value: toConsumable },
+    Consumer: { value: Consumer },
+    use: { value: use },
+    _isConsumable: { value: true },
   });
 
   return store as Store<TModel, TValue>;

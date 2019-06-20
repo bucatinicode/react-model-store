@@ -256,17 +256,10 @@ describe('Store Tests', () => {
     expect(errorSpy!).not.toBeCalled();
   });
 
-  test('toConsumable() should create consume only Store.', () => {
+  test('Store.Consumer should be Consumable.', () => {
     class TestLowerModel extends LowerModel<SingleStateModel> {}
     const HigherStore = createStore(SingleStateModel);
-    const HigherConsumable = HigherStore.toConsumable();
-
-    expect(
-      Object.prototype.hasOwnProperty.call(HigherConsumable, 'Provider')
-    ).toBeFalsy();
-    expect(
-      Object.prototype.hasOwnProperty.call(HigherConsumable, 'toConsumable')
-    ).toBeFalsy();
+    const HigherConsumer = HigherStore.Consumer;
 
     const renderMock = jest.fn((model: TestLowerModel) => {
       expect(model.higher.value).toBeTruthy();
@@ -278,18 +271,19 @@ describe('Store Tests', () => {
     mount(
       <HigherStore.Provider>
         <div>
-          <HigherConsumable.Consumer>
-            {model => {
-              expect(model.value).toBeTruthy();
+          <HigherConsumer>
+            {({ value }) => {
+              expect(value).toBeTruthy();
               return null;
             }}
-          </HigherConsumable.Consumer>
-          <Lower initialValue={HigherConsumable} />
+          </HigherConsumer>
+          <Lower initialValue={HigherStore} />
+          <Lower initialValue={HigherConsumer} />
         </div>
       </HigherStore.Provider>
     );
 
-    expect(renderMock).toBeCalledTimes(1);
+    expect(renderMock).toBeCalledTimes(2);
     expect(errorSpy!).not.toBeCalled();
   });
 });
