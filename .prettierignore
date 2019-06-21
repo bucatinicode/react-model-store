@@ -7,4 +7,5 @@
 /README.md
 /yarn.lock
 *.json
+*.tgz
 /src/react-model-store.ts

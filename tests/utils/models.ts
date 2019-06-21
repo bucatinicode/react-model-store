@@ -2,10 +2,10 @@ import React from 'react';
 import {
   Model,
   PureModel,
-  Store,
   Accessor,
   Event,
   Action,
+  Consumable,
 } from '../../src/react-model-store.dev';
 
 export class EmptyModel extends Model {}
@@ -72,7 +72,7 @@ export class MountModel extends Model {
 export class LowerModel<T extends {}> extends Model {
   readonly higher: T;
 
-  constructor(higherStore: Store<T>) {
+  constructor(higherStore: Consumable<T>) {
     super();
     this.higher = this.use(higherStore);
   }

@@ -17,6 +17,7 @@ const publicExampleDir = (exports.publicExampleDir = path.resolve(
   'example'
 ));
 
+exports.packageFile = path.resolve(rootDir, 'package.json');
 exports.tsconfigFile = path.resolve(rootDir, 'tsconfig.json');
 exports.microbundleFile = path.resolve(
   rootDir,

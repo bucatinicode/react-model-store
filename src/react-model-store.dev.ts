@@ -23,13 +23,13 @@ type InitialValue<TValue> = TValue extends void
 
 export type ModelSource<TModel extends {} = any, TValue = any> =
   | ModelClass<TModel, TValue>
-  | Store<TModel, TValue>;
+  | Consumable<TModel>;
 
 export type ModelType<
   TModelSource extends ModelSource
 > = TModelSource extends ModelClass<infer TModel, any>
   ? TModel
-  : TModelSource extends Store<infer TModel, any>
+  : TModelSource extends Consumable<infer TModel>
   ? TModel
   : never;
 
@@ -47,10 +47,22 @@ export interface StoreConsumerProps<TModel extends {}> {
   children: (model: TModel) => React.ReactNode;
 }
 
-export interface Store<TModel extends {}, TValue = void> {
-  readonly Provider: React.FunctionComponent<StoreProviderProps<TValue>>;
-  readonly Consumer: React.FunctionComponent<StoreConsumerProps<TModel>>;
+export interface Consumable<TModel extends {}> {
   use(): TModel;
+}
+
+export type StoreProvider<TValue = void> = React.FunctionComponent<
+  StoreProviderProps<TValue>
+>;
+export type StoreConsumer<TModel extends {}> = React.FunctionComponent<
+  StoreConsumerProps<TModel>
+> &
+  Consumable<TModel>;
+
+export interface Store<TModel extends {}, TValue = void>
+  extends Consumable<TModel> {
+  readonly Provider: StoreProvider<TValue>;
+  readonly Consumer: StoreConsumer<TModel>;
 }
 
 export type ModelComponentProps<TProps, TValue = void> = TProps &
@@ -269,9 +281,7 @@ export abstract class ModelBase {
     return result;
   }
 
-  protected use<TModel extends {}, TValue = void>(
-    store: Store<TModel, TValue>
-  ): TModel {
+  protected use<TModel extends {}>(store: Consumable<TModel>): TModel {
     return this.hook(() => store.use());
   }
 
@@ -523,10 +533,15 @@ export function createStore<TModel extends {}, TValue = void>(
   const use = () => {
     const box = React.useContext(Context);
     if (box === null) {
-      throw new Error('Store.use() must be wrapped with <Store.Provider>');
+      throw new Error('Consumable.use() must be wrapped with <Store.Provider>');
     }
     return box.inner;
   };
+
+  Object.defineProperties(Consumer, {
+    use: { value: use },
+    _isConsumable: { value: true },
+  });
 
   const store = {};
 
@@ -534,15 +549,15 @@ export function createStore<TModel extends {}, TValue = void>(
     Provider: { value: Provider },
     Consumer: { value: Consumer },
     use: { value: use },
-    _isStore: { value: true },
+    _isConsumable: { value: true },
   });
 
   return store as Store<TModel, TValue>;
 }
 
 function createResolver<TProps>(source: any): (props: TProps) => any {
-  return source._isStore === true
-    ? () => (source as Store<any, any>).use()
+  return source._isConsumable === true
+    ? () => (source as Consumable<any>).use()
     : (props: ModelComponentProps<TProps, any>) =>
         resolveModel(() =>
           newModel(source as ModelClass<any, any>, props as InitialValue<any>)
@@ -571,7 +586,7 @@ export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
  * @returns FunctionComponent
  */
 export function createComponent<TModel extends {}, TProps = {}>(
-  store: Store<TModel, any>,
+  store: Consumable<TModel>,
   render: (
     model: TModel,
     props: TProps,
@@ -592,7 +607,7 @@ export function createComponent<
 >(
   modelSources: TModelSourceTuple,
   render: (
-    mdoels: ModelTuple<TModelSourceTuple>,
+    models: ModelTuple<TModelSourceTuple>,
     props: TProps,
     context?: any
   ) => React.ReactElement | null

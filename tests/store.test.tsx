@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStore } from '../src/react-model-store.dev';
+import { createStore, createComponent } from '../src/react-model-store.dev';
 import {
   SingleStateModel,
   EmptyModel,
@@ -7,6 +7,7 @@ import {
   ParentModel,
   MountModel,
   UndefinableStateModel,
+  LowerModel,
 } from './utils/models';
 import { shallow, mount } from 'enzyme';
 import {
@@ -252,5 +253,37 @@ describe('Store Tests', () => {
       </Store.Provider>
     );
     expect(Mock).toBeCalledTimes(2);
+    expect(errorSpy!).not.toBeCalled();
+  });
+
+  test('Store.Consumer should be Consumable.', () => {
+    class TestLowerModel extends LowerModel<SingleStateModel> {}
+    const HigherStore = createStore(SingleStateModel);
+    const HigherConsumer = HigherStore.Consumer;
+
+    const renderMock = jest.fn((model: TestLowerModel) => {
+      expect(model.higher.value).toBeTruthy();
+      return null;
+    }) as (model: TestLowerModel) => null;
+
+    const Lower = createComponent(TestLowerModel, renderMock);
+
+    mount(
+      <HigherStore.Provider>
+        <div>
+          <HigherConsumer>
+            {({ value }) => {
+              expect(value).toBeTruthy();
+              return null;
+            }}
+          </HigherConsumer>
+          <Lower initialValue={HigherStore} />
+          <Lower initialValue={HigherConsumer} />
+        </div>
+      </HigherStore.Provider>
+    );
+
+    expect(renderMock).toBeCalledTimes(2);
+    expect(errorSpy!).not.toBeCalled();
   });
 });
