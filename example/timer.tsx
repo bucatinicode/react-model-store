@@ -3,7 +3,12 @@ import 'react-app-polyfill/stable';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Model, createComponent, createStore } from '../src/react-model-store';
+import {
+  Model,
+  createStore,
+  useStore,
+  useModel,
+} from '../src/react-model-store';
 
 class RootModel extends Model {
   // RootModelStore.Provider component is re-rendered when this state is changed.
@@ -26,7 +31,7 @@ class RootModel extends Model {
 const RootModelStore = createStore(RootModel);
 
 class HighFrequencyTimerModel extends Model {
-  root = this.use(RootModelStore); // use RootModel
+  root = this.useStore(RootModelStore); // use RootModel
 
   // HighFrequencyTimer component is re-rendered when this state is changed.
   time = this.state(0);
@@ -66,22 +71,24 @@ class HighFrequencyTimerModel extends Model {
   };
 }
 
-const HighFrequencyTimer = createComponent(
-  HighFrequencyTimerModel,
-  ({ time }) => <span>{(time / 1000).toFixed(2)}</span>
-);
+const HighFrequencyTimer = () => {
+  const { time } = useModel(HighFrequencyTimerModel);
+  return <span>{(time / 1000).toFixed(2)}</span>;
+};
 
-const Controller = createComponent(
-  RootModelStore,
-  ({ onReset, onToggle, toggleText, resetButton }) => (
+const Controller = () => {
+  const { onReset, onToggle, toggleText, resetButton } = useStore(
+    RootModelStore
+  );
+  return (
     <div>
       <button onClick={onToggle}>{toggleText}</button>
       <button onClick={onReset} ref={resetButton}>
         Reset
       </button>
     </div>
-  )
-);
+  );
+};
 
 ReactDOM.render(
   <div>

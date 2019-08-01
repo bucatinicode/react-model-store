@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStore } from '../src/react-model-store.dev';
+import { createStore, useStore } from '../src/react-model-store.dev';
 import {
   IllegalHookModel,
   LowerModel,
@@ -29,7 +29,7 @@ describe('Hooks Tests', () => {
     const Store = createStore(IllegalHookModel);
 
     const Mock = jest.fn(() => {
-      const model = Store.use();
+      const model = useStore(Store);
       model.value(false);
       return null;
     }) as () => null;
@@ -53,7 +53,7 @@ describe('Hooks Tests', () => {
     const Mock = jest.fn(() => {
       let mountRender = false;
       React.useMemo(() => (mountRender = true), []);
-      const lower = LowerStore.use();
+      const lower = useStore(LowerStore);
 
       if (mountRender) {
         expect(lower.higher.value).toBe(true);
@@ -82,8 +82,8 @@ describe('Hooks Tests', () => {
     let model: RefModel | null = null;
     const Store = createStore(RefModel);
     const Mock = jest.fn(() => {
-      model = Store.use();
-      return <input ref={model!.refInput} defaultValue={'input value'} />;
+      model = useStore(Store);
+      return <input ref={model.refInput} defaultValue={'input value'} />;
     }) as () => React.ReactElement;
     mount(
       <Store.Provider>

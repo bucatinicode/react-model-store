@@ -74,7 +74,7 @@ export class LowerModel<T extends {}> extends Model {
 
   constructor(higherStore: Consumable<T>) {
     super();
-    this.higher = this.use(higherStore);
+    this.higher = this.consume(higherStore);
   }
 }
 

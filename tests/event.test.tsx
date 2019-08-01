@@ -4,7 +4,7 @@ import {
   ModelBase,
   Action,
   Event,
-  createComponent,
+  useModel,
 } from '../src/react-model-store.dev';
 import { EventModel, ListenerModel, NumberModel } from './utils/models';
 import { mount } from 'enzyme';
@@ -31,33 +31,30 @@ describe('Event Tests', () => {
     let event: EventModel | null = null;
     let listener: ListenerModel | null = null;
 
-    const renderListener = jest.fn((model: ListenerModel) => {
-      listener = model;
+    const Listener = jest.fn(() => {
+      listener = useModel(ListenerModel);
       return null;
-    }) as (model: ListenerModel) => null;
-    const Listener = createComponent(ListenerModel, renderListener);
+    }) as () => null;
 
-    const renderEvent = jest.fn((model: EventModel) => {
-      const { onChange, onClick } = (event = model);
+    const Event = jest.fn(() => {
+      const { onChange, onClick } = (event = useModel(EventModel));
       return (
         <div>
           <input type='text' onChange={onChange} />
           <button onClick={onClick} />
         </div>
       );
-    }) as (model: EventModel) => React.ReactElement;
-    const Event = createComponent(EventModel, renderEvent);
+    }) as () => React.ReactElement;
 
-    const renderRoot = jest.fn((model: NumberModel) => {
-      root = model;
+    const Root = jest.fn(() => {
+      root = useModel(NumberModel);
       return (
         <div>
-          {model.n > 1 ? null : <Event />}
-          {model.n > 0 ? null : <Listener />}
+          {root.n > 1 ? null : <Event />}
+          {root.n > 0 ? null : <Listener />}
         </div>
       );
-    }) as (model: NumberModel) => React.ReactElement;
-    const Root = createComponent(NumberModel, renderRoot);
+    }) as () => React.ReactElement;
 
     const wrapper = mount(<Root />);
     const change = (value: string) => {
@@ -67,9 +64,9 @@ describe('Event Tests', () => {
     };
     const click = () => wrapper.find('button').simulate('click');
 
-    expect(renderRoot).toBeCalledTimes(1);
-    expect(renderEvent).toBeCalledTimes(1);
-    expect(renderListener).toBeCalledTimes(1);
+    expect(Root).toBeCalledTimes(1);
+    expect(Event).toBeCalledTimes(1);
+    expect(Listener).toBeCalledTimes(1);
     expect(map(event!.onClick).size).toBe(1);
     expect(map(event!.onChange).size).toBe(0);
     expectListenerDependencyCount(event!, 1);
@@ -117,9 +114,9 @@ describe('Event Tests', () => {
     act(() => {
       root!.n = 1;
     });
-    expect(renderRoot).toBeCalledTimes(2);
-    expect(renderEvent).toBeCalledTimes(2);
-    expect(renderListener).toBeCalledTimes(1);
+    expect(Root).toBeCalledTimes(2);
+    expect(Event).toBeCalledTimes(2);
+    expect(Listener).toBeCalledTimes(1);
     expectListenerDependencyCount(event!, 1);
     expectListenerDependencyCount(listener!);
     expect(map(event!.onClick).size).toBe(1);
@@ -132,9 +129,9 @@ describe('Event Tests', () => {
     act(() => {
       root!.n = 2;
     });
-    expect(renderRoot).toBeCalledTimes(3);
-    expect(renderEvent).toBeCalledTimes(2);
-    expect(renderListener).toBeCalledTimes(1);
+    expect(Root).toBeCalledTimes(3);
+    expect(Event).toBeCalledTimes(2);
+    expect(Listener).toBeCalledTimes(1);
     expectListenerDependencyCount(event!);
     expectListenerDependencyCount(listener!);
     expect(map(event!.onClick).size).toBe(1);

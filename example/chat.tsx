@@ -3,7 +3,7 @@ import 'react-app-polyfill/stable';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { createStore, Model, createComponent } from '../src/react-model-store';
+import { createStore, Model, useModel } from '../src/react-model-store';
 
 interface Chat {
   readonly key: number;
@@ -40,7 +40,7 @@ class RootModel extends Model {
 }
 
 class ChatViewModel extends Model {
-  root = this.use(RootModelStore);
+  root = this.consume(RootModelStore);
   chats = this.state(this.root.chats);
 
   addChat = (_user: string, _message: string) => (this.chats = this.root.chats);
@@ -52,7 +52,7 @@ class ChatViewModel extends Model {
 }
 
 class ChatRoomModel extends Model {
-  root = this.use(RootModelStore);
+  root = this.consume(RootModelStore);
   chats = this.state<Chat[]>([]);
   isFocus: boolean;
   user: string;
@@ -128,44 +128,47 @@ const ChatDisplay = (props: { chats: Chat[] }) => (
   </div>
 );
 
-const ChatView = createComponent(ChatViewModel, ({ chats }) => (
-  <div>
-    <p>Chat View</p>
-    <ChatDisplay chats={chats} />
-  </div>
-));
+const ChatView = () => {
+  const { chats } = useModel(ChatViewModel);
+  return (
+    <div>
+      <p>Chat View</p>
+      <ChatDisplay chats={chats} />
+    </div>
+  );
+};
 
-const ChatRoom = createComponent(
-  ChatRoomModel,
-  ({
+const ChatRoom = (props: {
+  initialValue?: { user: string; focus: boolean };
+}) => {
+  const {
     chats,
     user,
     sendMessage,
     sendLocaslMessage,
     onTextKeyPress,
     input: textRef,
-  }) => {
-    const display = React.useMemo(() => <ChatDisplay chats={chats} />, [chats]);
+  } = useModel(ChatRoomModel, props.initialValue);
+  const display = React.useMemo(() => <ChatDisplay chats={chats} />, [chats]);
 
-    return (
+  return (
+    <div>
+      <p>Chat Room: {user}</p>
       <div>
-        <p>Chat Room: {user}</p>
-        <div>
-          <input ref={textRef} type='text' onKeyPress={onTextKeyPress} />
-        </div>
-        <div>
-          <button onClick={sendMessage}>Send Message (Enter)</button>
-        </div>
-        <div>
-          <button onClick={sendLocaslMessage}>
-            Send Local Message (Shift + Enter)
-          </button>
-        </div>
-        {display}
+        <input ref={textRef} type='text' onKeyPress={onTextKeyPress} />
       </div>
-    );
-  }
-);
+      <div>
+        <button onClick={sendMessage}>Send Message (Enter)</button>
+      </div>
+      <div>
+        <button onClick={sendLocaslMessage}>
+          Send Local Message (Shift + Enter)
+        </button>
+      </div>
+      {display}
+    </div>
+  );
+};
 
 const App = () => {
   const style = { marginLeft: 10, marginRight: 10 };

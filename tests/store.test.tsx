@@ -1,5 +1,10 @@
 import React from 'react';
-import { createStore, createComponent } from '../src/react-model-store.dev';
+import {
+  Consumable,
+  createStore,
+  useStore,
+  useModel,
+} from '../src/react-model-store.dev';
 import {
   SingleStateModel,
   EmptyModel,
@@ -32,10 +37,10 @@ describe('Store Tests', () => {
     errorSpy!.mockRestore();
   });
 
-  test('<Store.Provider> should provide Store.use() with model instance.', () => {
+  test('<Store.Provider> should provide useStore() with model instance.', () => {
     const Store = createStore(EmptyModel);
     const Mock = jest.fn(() => {
-      const model = Store.use();
+      const model = useStore(Store);
       expect(model).toBeInstanceOf(EmptyModel);
       return null;
     }) as () => null;
@@ -50,10 +55,10 @@ describe('Store Tests', () => {
     expect(errorSpy!).not.toBeCalled();
   });
 
-  test('Store.use() should not be provided with model instance without <Store.Provider>.', () => {
+  test('useStore() should not be provided with model instance without <Store.Provider>.', () => {
     const Store = createStore(EmptyModel);
     const Mock = jest.fn(() => {
-      expect(() => Store.use()).toThrow();
+      expect(() => useStore(Store)).toThrow();
       return null;
     }) as () => null;
     mount(
@@ -142,7 +147,7 @@ describe('Store Tests', () => {
     const INITIAL_VALUE = 'initial value';
     const Store = createStore(HasInitailValueModel);
     const Mock = jest.fn(() => {
-      const model = Store.use();
+      const model = useStore(Store);
       expect(model.value).toBe(INITIAL_VALUE);
       return null;
     }) as () => null;
@@ -234,7 +239,7 @@ describe('Store Tests', () => {
   test('State should get and set undefined value.', () => {
     const Store = createStore(UndefinableStateModel);
     const Mock = jest.fn(() => {
-      const model = Store.use();
+      const model = useStore(Store);
       let mountRender = false;
       React.useMemo(() => (mountRender = true), []);
       if (mountRender) {
@@ -261,12 +266,11 @@ describe('Store Tests', () => {
     const HigherStore = createStore(SingleStateModel);
     const HigherConsumer = HigherStore.Consumer;
 
-    const renderMock = jest.fn((model: TestLowerModel) => {
+    const Lower = jest.fn((props: { higher: Consumable<SingleStateModel> }) => {
+      const model = useModel(TestLowerModel, props.higher);
       expect(model.higher.value).toBeTruthy();
       return null;
-    }) as (model: TestLowerModel) => null;
-
-    const Lower = createComponent(TestLowerModel, renderMock);
+    }) as (props: { higher: Consumable<SingleStateModel> }) => null;
 
     mount(
       <HigherStore.Provider>
@@ -277,13 +281,13 @@ describe('Store Tests', () => {
               return null;
             }}
           </HigherConsumer>
-          <Lower initialValue={HigherStore} />
-          <Lower initialValue={HigherConsumer} />
+          <Lower higher={HigherStore} />
+          <Lower higher={HigherConsumer} />
         </div>
       </HigherStore.Provider>
     );
 
-    expect(renderMock).toBeCalledTimes(2);
+    expect(Lower).toBeCalledTimes(2);
     expect(errorSpy!).not.toBeCalled();
   });
 });
