@@ -21,24 +21,6 @@ type InitialValue<TValue> = TValue extends void
   ? { initialValue?: TValue }
   : { initialValue: TValue };
 
-export type ModelSource<TModel extends {} = any, TValue = any> =
-  | ModelClass<TModel, TValue>
-  | Consumable<TModel>;
-
-export type ModelType<
-  TModelSource extends ModelSource
-> = TModelSource extends ModelClass<infer TModel, any>
-  ? TModel
-  : TModelSource extends Consumable<infer TModel>
-  ? TModel
-  : never;
-
-export type ModelTuple<TModelSourceTuple extends ModelSource[]> = {
-  [TIndex in keyof TModelSourceTuple]: TModelSourceTuple[TIndex] extends ModelSource
-    ? ModelType<TModelSourceTuple[TIndex]>
-    : never
-};
-
 export type StoreProviderProps<TValue = void> = InitialValue<TValue> & {
   children?: React.ReactNode;
 };
