@@ -260,15 +260,9 @@ export abstract class ModelBase {
     return result;
   }
 
-  protected consume<TModel extends {}, TValue>(
-    store: Store<TModel, TValue>
-  ): TModel;
-
   protected consume<TModel extends {}>(
-    consumable: StoreConsumer<TModel> | Consumable<TModel>
-  ): TModel;
-
-  protected consume<TModel extends {}>(consumable: Consumable<TModel>): TModel {
+    consumable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
+  ): TModel {
     return this.hook(() => consumable.consume());
   }
 
@@ -539,24 +533,11 @@ export function createStore<TModel extends {}, TValue = void>(
 
 /**
  * useStore returns a model object provided by Store.Provider element in functional component.
- * @param store is Store object
- * @returns model object
- */
-export function useStore<TModel extends {}, TValue>(
-  store: Store<TModel, TValue>
-): TModel;
-
-/**
- * useStore returns a model object provided by Store.Provider element in functional component.
- * @param consumable is an object that implements Consumable interface such as StoreConsumer.
+ * @param store is an object that implements Consumable interface.
  * @returns model object
  */
 export function useStore<TModel extends {}>(
-  consumable: StoreConsumer<TModel> | Consumable<TModel>
-): TModel;
-
-export function useStore<TModel extends {}>(
-  consumable: Consumable<TModel>
+  consumable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
 ): TModel {
   return consumable.consume();
 }
