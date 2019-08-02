@@ -13,11 +13,11 @@ This library provides model-based state management with Hooks and Context API of
 ## Install
 
 ```sh
-npm install react-model-store
+npm install https://github.com/bucatinicode/react-model-store#v0.4.0-beta1
 ```
 or
 ```sh
-yarn add react-model-store
+yarn add https://github.com/bucatinicode/react-model-store#v0.4.0-beta1
 ```
 
 ## Requirements
@@ -30,7 +30,7 @@ yarn add react-model-store
 ```tsx
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Model, createComponent } from 'react-model-store';
+import { Model, useModel } from 'react-model-store';
 
 class CounterModel extends Model {
   count: number = this.state(0);
@@ -42,9 +42,9 @@ class CounterModel extends Model {
   decrement = () => setTimeout(() => this.count--, 1000);
 }
 
-const Counter = createComponent(
-  CounterModel,
-  ({ count, increment, decrement }) => (
+const Counter = () => {
+  const { count, increment, decrement } = useModel(CounterModel);
+  return (
     <div>
       <p>Count: {count}</p>
       <div>
@@ -52,8 +52,8 @@ const Counter = createComponent(
         <button onClick={decrement}>Decrement</button>
       </div>
     </div>
-  )
-);
+  );
+};
 
 ReactDOM.render(<Counter />, document.getElementById('root'));
 ```
@@ -63,7 +63,12 @@ ReactDOM.render(<Counter />, document.getElementById('root'));
 ```tsx
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Model, createStore, createComponent } from 'react-model-store';
+import {
+  Model,
+  createStore,
+  useStore,
+  useModel,
+} from 'react-model-store';
 
 interface Todo {
   key: number;
@@ -72,8 +77,8 @@ interface Todo {
 
 class ControlModel extends Model {
   textInput = this.ref<HTMLInputElement>();
-  onAddClick = this.event<[]>();
-  onKeyPress = this.event<[React.KeyboardEvent<HTMLInputElement>]>();
+  onAddClick = this.event();
+  onKeyPress = this.event<React.KeyboardEvent<HTMLInputElement>>();
 
   get text(): string {
     return this.textInput.current!.value;
@@ -86,7 +91,7 @@ class ControlModel extends Model {
 }
 
 class LogicModel extends Model {
-  control: ControlModel;
+  private control: ControlModel;
   lastKey: number = this.state(0);
   todos: Todo[] = this.state([]);
 
@@ -128,22 +133,23 @@ class RootModel {
 }
 
 class TodoModel extends Model {
-  logic = this.use(Store).logic;
   todo: Todo;
   onRemoveClick: () => void;
 
   constructor(todo: Todo) {
     super();
     this.todo = todo;
-    this.onRemoveClick = this.logic.remove.bind(this.logic, todo.key);
+    const { logic } = this.consume(RootModelStore);
+    this.onRemoveClick = logic.remove.bind(logic, todo.key);
   }
 }
 
-const Store = createStore(RootModel);
+const RootModelStore = createStore(RootModel);
 
 const ControlPanel = () => {
-  const { control: { textInput, onAddClick, onKeyPress } } = Store.use();
-
+  const {
+    control: { textInput, onAddClick, onKeyPress },
+  } = useStore(RootModelStore);
   return (
     <div>
       <input type='text' ref={textInput} onKeyPress={onKeyPress} />
@@ -152,34 +158,36 @@ const ControlPanel = () => {
   );
 };
 
-const TodoItem = createComponent(
-  TodoModel,
-  ({ todo: { text }, onRemoveClick }) => (
+const TodoItem = (props: { todo: Todo }) => {
+  const {
+    todo: { text },
+    onRemoveClick,
+  } = useModel(TodoModel, props.todo);
+  return (
     <li>
       <button onClick={onRemoveClick}>Remove</button>
       <span>{text}</span>
     </li>
-  )
-);
-
-const App = () => {
-  const { logic: { todos } } = Store.use();
-  return (
-    <div>
-      <ControlPanel />
-      <ul>
-        {todos.map(todo => (
-          <TodoItem key={todo.key} initialValue={todo} />
-        ))}
-      </ul>
-    </div>
   );
 };
 
-ReactDOM.render(
-  <Store.Provider>
-    <App />
-  </Store.Provider>,
+ReactDOM.render(  
+  <RootModelStore.Provider>
+    <div>
+      <ControlPanel />
+      <ul>
+        <RootModelStore.Consumer>
+          {({ logic: { todos } }) =>
+            todos.map(todo => (
+              <li>
+                <TodoItem key={todo.key} todo={todo} />
+              </li>
+            ))
+          }
+        </RootModelStore.Consumer>
+      </ul>
+    </div>
+  </RootModelStore.Provider>,
   document.getElementById('root')
 );
 ```
@@ -189,15 +197,20 @@ ReactDOM.render(
 ```tsx
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Model, createComponent, createStore } from 'react-model-store';
+import {
+  Model,
+  createStore,
+  useStore,
+  useModel,
+} from 'react-model-store';
 
 class RootModel extends Model {
-  // Store.Provider component is re-rendered when this state is changed.
+  // RootModelStore.Provider component is re-rendered when this state is changed.
   running = this.state(false);
 
   resetButton = this.ref<HTMLButtonElement>();
 
-  onReset = this.event<[]>();
+  onReset = this.event();
 
   onToggle = this.event(() => {
     this.running = !this.running;
@@ -209,10 +222,10 @@ class RootModel extends Model {
   }
 }
 
-const Store = createStore(RootModel);
+const RootModelStore = createStore(RootModel);
 
 class HighFrequencyTimerModel extends Model {
-  root = this.use(Store); // use RootModel
+  root = this.consume(RootModelStore); // use RootModel
 
   // HighFrequencyTimer component is re-rendered when this state is changed.
   time = this.state(0);
@@ -252,13 +265,15 @@ class HighFrequencyTimerModel extends Model {
   };
 }
 
-const HighFrequencyTimer = createComponent(
-  HighFrequencyTimerModel,
-  ({ time }) => <span>{(time / 1000).toFixed(2)}</span>
-);
+const HighFrequencyTimer = () => {
+  const { time } = useModel(HighFrequencyTimerModel);
+  return <span>{(time / 1000).toFixed(2)}</span>;
+};
 
 const Controller = () => {
-  const { onReset, onToggle, toggleText, resetButton } = Store.use();
+  const { onReset, onToggle, toggleText, resetButton } = useStore(
+    RootModelStore
+  );
   return (
     <div>
       <button onClick={onToggle}>{toggleText}</button>
@@ -270,7 +285,7 @@ const Controller = () => {
 };
 
 ReactDOM.render(
-  <Store.Provider>
+  <RootModelStore.Provider>
     <div>
       <div>
         {/*
@@ -281,7 +296,7 @@ ReactDOM.render(
       </div>
       <Controller />
     </div>
-  </Store.Provider>,
+  </RootModelStore.Provider>,
   document.getElementById('root')
 );
 ```

@@ -1,3 +1,9 @@
+/**
+ * @license ReactModelStore v0.4.0-beta1
+ * (c) 2019 bucatini
+ * License: MIT
+ */
+
 import React from 'react';
 
 export type Accessor<T extends any> = (() => T) & ((value: T) => void);
@@ -7,8 +13,62 @@ export type Event<TArgs extends any[]> = Action<TArgs> & {
   remove(listener: Action<TArgs>): boolean;
   clear(): void;
 };
-export interface ModelClass<TModel extends {}, TValue = void> {
-  new (initialValue: TValue): TModel;
+export type ModelClass<TModel extends {}, TValue> = TValue extends void
+  ? {
+      new (): TModel;
+    }
+  : {
+      new (initialValue: TValue): TModel;
+    };
+
+type InitialValue<TValue> = TValue extends void
+  ? {}
+  : unknown extends TValue
+  ? { initialValue?: TValue }
+  : { initialValue: TValue };
+
+export type ModelSource<TModel extends {} = any, TValue = any> =
+  | ModelClass<TModel, TValue>
+  | Consumable<TModel>;
+
+export type ModelType<
+  TModelSource extends ModelSource
+> = TModelSource extends ModelClass<infer TModel, any>
+  ? TModel
+  : TModelSource extends Consumable<infer TModel>
+  ? TModel
+  : never;
+
+export type ModelTuple<TModelSourceTuple extends ModelSource[]> = {
+  [TIndex in keyof TModelSourceTuple]: TModelSourceTuple[TIndex] extends ModelSource
+    ? ModelType<TModelSourceTuple[TIndex]>
+    : never
+};
+
+export type StoreProviderProps<TValue = void> = InitialValue<TValue> & {
+  children?: React.ReactNode;
+};
+
+export interface StoreConsumerProps<TModel extends {}> {
+  children: (model: TModel) => React.ReactNode;
+}
+
+export interface Consumable<TModel extends {}> {
+  consume(): TModel;
+}
+
+export type StoreProvider<TValue = void> = React.FunctionComponent<
+  StoreProviderProps<TValue>
+>;
+export type StoreConsumer<TModel extends {}> = React.FunctionComponent<
+  StoreConsumerProps<TModel>
+> &
+  Consumable<TModel>;
+
+export interface Store<TModel extends {}, TValue = void>
+  extends Consumable<TModel> {
+  readonly Provider: StoreProvider<TValue>;
+  readonly Consumer: StoreConsumer<TModel>;
 }
 
 interface Box<T> {
@@ -39,7 +99,7 @@ const listenerDependencyStore = new Map<
   Map<Action<any>, Event<any>>
 >();
 
-function createEventHandler<TArgs extends any[]>(): Event<TArgs> {
+function createEvent<TArgs extends any[]>(): Event<TArgs> {
   const listenerMap = new Map<Action<TArgs>, ModelBase | null>();
 
   function event(...args: TArgs): void {
@@ -50,7 +110,7 @@ function createEventHandler<TArgs extends any[]>(): Event<TArgs> {
 
   function add(listener: Action<TArgs>, dep?: ModelBase): boolean {
     if (dep && !(dep as any).mounted) {
-      throw new Error('Unmounted model objects cannot add event listener');
+      throw new Error('Cannot add event listener to unmounted model objects');
     }
     if (listenerMap.has(listener)) {
       return false;
@@ -110,7 +170,7 @@ function createStateAccessor<T extends any>(
 ): Accessor<T> {
   if (meta.finalized) {
     throw new Error(
-      'createStateAccessor() must be called from constructors of classes that extend Model or PureModel'
+      'createStateAccessor() must be called from constructors of classes that extend ModelBase'
     );
   }
 
@@ -151,7 +211,7 @@ export abstract class ModelBase {
   constructor() {
     if (!current.meta) {
       throw new Error(
-        'Model constructors must be called from createModel argument of createStore() function.'
+        'ModelBase constructor must be called from Provider of Store created by createStore() or Component created by createComponent().'
       );
     }
     this._meta = current.meta;
@@ -187,7 +247,7 @@ export abstract class ModelBase {
   protected hook<T = void>(useHook: () => T): T {
     if (this._meta.finalized) {
       throw new Error(
-        'hook() must be called from constructors of Model classes'
+        'hook() must be called from the constructor of classes that extend ModelBase'
       );
     }
     const result = useHook();
@@ -195,10 +255,16 @@ export abstract class ModelBase {
     return result;
   }
 
-  protected use<TModel extends {}, TValue = void>(
+  protected consume<TModel extends {}, TValue>(
     store: Store<TModel, TValue>
-  ): TModel {
-    return this.hook(() => store.use());
+  ): TModel;
+
+  protected consume<TModel extends {}>(
+    consumable: StoreConsumer<TModel> | Consumable<TModel>
+  ): TModel;
+
+  protected consume<TModel extends {}>(consumable: Consumable<TModel>): TModel {
+    return this.hook(() => consumable.consume());
   }
 
   protected ref<T>(initialValue?: T): React.RefObject<T> {
@@ -207,8 +273,33 @@ export abstract class ModelBase {
       : ({ current: initialValue } as React.RefObject<T>);
   }
 
-  protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs> {
-    const e = createEventHandler<TArgs>();
+  protected event(): Event<[]>;
+
+  protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs>;
+
+  protected event<T>(listener?: Action<[T]>): Event<[T]>;
+  protected event<T1, T2>(listener?: Action<[T1, T2]>): Event<[T1, T2]>;
+  protected event<T1, T2, T3>(
+    listener?: Action<[T1, T2, T3]>
+  ): Event<[T1, T2, T3]>;
+  protected event<T1, T2, T3, T4>(
+    listener?: Action<[T1, T2, T3, T4]>
+  ): Event<[T1, T2, T3, T4]>;
+  protected event<T1, T2, T3, T4, T5>(
+    listener?: Action<[T1, T2, T3, T4, T5]>
+  ): Event<[T1, T2, T3, T4, T5]>;
+  protected event<T1, T2, T3, T4, T5, T6>(
+    listener?: Action<[T1, T2, T3, T4, T5, T6]>
+  ): Event<[T1, T2, T3, T4, T5, T6]>;
+  protected event<T1, T2, T3, T4, T5, T6, T7>(
+    listener?: Action<[T1, T2, T3, T4, T5, T6, T7]>
+  ): Event<[T1, T2, T3, T4, T5, T6, T7]>;
+  protected event<T1, T2, T3, T4, T5, T6, T7, T8>(
+    listener?: Action<[T1, T2, T3, T4, T5, T6, T7, T8]>
+  ): Event<[T1, T2, T3, T4, T5, T6, T7, T8]>;
+
+  protected event(listener?: Action<any[]>): Event<any[]> {
+    const e = createEvent<any[]>();
     if (listener) {
       e.add(listener, this);
     }
@@ -231,9 +322,9 @@ export abstract class ModelBase {
 }
 
 /**
- * PureModel can only use functional getter/setter.
- * In case of using React Hooks from constructor of derived classes,
- * React Hooks functions must be called through the use of hook function.
+ * PureModel can only use functional state accessors.
+ * In case model objects are created frequently,
+ * PureModel objects are created at a lower cost than Model objects.
  */
 export abstract class PureModel extends ModelBase {
   /**
@@ -263,7 +354,7 @@ export abstract class PureModel extends ModelBase {
 /**
  * Model-based React Hooks wrapper.
  * In case of using React Hooks from constructor of derived classes,
- * React Hooks functions must be called through the use of hook() function.
+ * React Hooks functions must be called through the use of useHook() function.
  *
  * @example
  * class ComponentModel extends Model {
@@ -373,28 +464,28 @@ function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
   return ref.current!;
 }
 
-export interface StoreProviderProps<TValue = void> {
-  initialValue?: TValue;
-  children: React.ReactNode;
-}
-
-export interface StoreConsumerProps<TModel extends {}> {
-  children: (model: TModel) => React.ReactNode;
-}
-
-export interface Store<TModel extends {}, TValue = void> {
-  readonly Provider: React.FunctionComponent<StoreProviderProps<TValue>>;
-  readonly Consumer: React.FunctionComponent<StoreConsumerProps<TModel>>;
-  use(): TModel;
-}
-
+/**
+ * Create a model store that wrapped Context API.
+ * It is useful when nested components need to reference the model.
+ * Every time <Store.Provider> is mounted, Store creates a model object.
+ * <Store.Provider> provides the model object to nested components.
+ * Then <Store.Consumer> or useStore(Store) can consume the model object.
+ * @param modelClass
+ * @returns Store
+ */
 export function createStore<TModel extends {}, TValue = void>(
   modelClass: ModelClass<TModel, TValue>
 ): Store<TModel, TValue> {
   const Context = React.createContext<Box<TModel> | null>(null);
 
   const Provider = (props: StoreProviderProps<TValue>) => {
-    const model = resolveModel(() => new modelClass(props.initialValue!));
+    const createModel = Object.prototype.hasOwnProperty.call(
+      props,
+      'initialValue'
+    )
+      ? () => new modelClass((props as { initialValue: TValue }).initialValue)
+      : () => new (modelClass as ModelClass<TModel, void>)();
+    const model = resolveModel(createModel);
     return React.createElement(
       Context.Provider,
       { value: { inner: model } },
@@ -416,38 +507,68 @@ export function createStore<TModel extends {}, TValue = void>(
     return React.createElement(Context.Consumer, consumerProps);
   };
 
-  const use = () => {
+  const consume = () => {
     const box = React.useContext(Context);
     if (box === null) {
-      throw new Error('Store.use() must be wrapped with <Store.Provider>');
+      throw new Error(
+        'Consumable.consume() must be wrapped with <Store.Provider>'
+      );
     }
     return box.inner;
   };
 
-  return { Provider, Consumer, use };
+  Object.defineProperties(Consumer, {
+    consume: { value: consume },
+  });
+
+  const store = {};
+
+  Object.defineProperties(store, {
+    Provider: { value: Provider },
+    Consumer: { value: Consumer },
+    consume: { value: consume },
+  });
+
+  return store as Store<TModel, TValue>;
 }
 
-export type ModelComponentProps<TProps = {}, TValue = void> = TProps & {
-  initialValue?: TValue;
-};
+/**
+ * useStore returns a model object provided by Store.Provider element in functional component.
+ * @param store is Store object
+ * @returns model object
+ */
+export function useStore<TModel extends {}, TValue>(
+  store: Store<TModel, TValue>
+): TModel;
 
 /**
- * Create a function component that references a model object created by createModel argument.
- * It is useful when the model is referenced by only a created component.
- * @param createModel
- * @param render
- * @returns A function component
+ * useStore returns a model object provided by Store.Provider element in functional component.
+ * @param consumable is an object that implements Consumable interface such as StoreConsumer.
+ * @returns model object
  */
-export function createComponent<TModel extends {}, TProps = {}, TValue = void>(
+export function useStore<TModel extends {}>(
+  consumable: StoreConsumer<TModel> | Consumable<TModel>
+): TModel;
+
+export function useStore<TModel extends {}>(
+  consumable: Consumable<TModel>
+): TModel {
+  return consumable.consume();
+}
+
+/**
+ * useModel returns a model object related to functional component.
+ * @param modelClass is model class constructor
+ * @param initialValue is passed to the model class constructor.
+ * @returns model object
+ */
+export function useModel<TModel extends {}, TValue = void>(
   modelClass: ModelClass<TModel, TValue>,
-  render: (
-    model: TModel,
-    props: TProps,
-    context?: any
-  ) => React.ReactElement | null
-): React.FunctionComponent<ModelComponentProps<TProps, TValue>> {
-  return (p: ModelComponentProps<TProps, TValue>, ctx?: any) => {
-    const model = resolveModel(() => new modelClass(p.initialValue!));
-    return render(model, p, ctx);
-  };
+  initialValue?: TValue
+): TModel {
+  const createModel =
+    arguments.length > 1
+      ? () => new modelClass(initialValue!)
+      : () => new (modelClass as ModelClass<TModel, void>)();
+  return resolveModel(createModel);
 }
