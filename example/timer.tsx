@@ -31,7 +31,7 @@ class RootModel extends Model {
 const RootModelStore = createStore(RootModel);
 
 class HighFrequencyTimerModel extends Model {
-  root = this.useStore(RootModelStore); // use RootModel
+  root = this.consume(RootModelStore); // use RootModel
 
   // HighFrequencyTimer component is re-rendered when this state is changed.
   time = this.state(0);
