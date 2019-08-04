@@ -39,11 +39,21 @@ export class IllegalHookModel extends Model {
   illegalHook = React.useState(true);
 }
 
-export class HasInitailValueModel {
+export class HasInitialValueModel {
   readonly value: any;
 
   constructor(initialValue: any) {
     this.value = initialValue;
+  }
+}
+
+export class ParentModel2 extends Model {
+  child1: HasInitialValueModel;
+  child2 = this.model(SingleStateModel);
+
+  constructor(initialValue: any) {
+    super();
+    this.child1 = this.model(HasInitialValueModel, initialValue);
   }
 }
 
@@ -74,7 +84,7 @@ export class LowerModel<T extends {}> extends Model {
 
   constructor(higherStore: Consumable<T>) {
     super();
-    this.higher = this.consume(higherStore);
+    this.higher = this.model(higherStore);
   }
 }
 

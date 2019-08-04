@@ -2,13 +2,12 @@ import React from 'react';
 import {
   Consumable,
   createStore,
-  useStore,
   useModel,
 } from '../src/react-model-store.dev';
 import {
   SingleStateModel,
   EmptyModel,
-  HasInitailValueModel,
+  HasInitialValueModel,
   ParentModel,
   MountModel,
   UndefinableStateModel,
@@ -37,10 +36,10 @@ describe('Store Tests', () => {
     errorSpy!.mockRestore();
   });
 
-  test('<Store.Provider> should provide useStore() with model instance.', () => {
+  test('<Store.Provider> should provide useModel() with model instance.', () => {
     const Store = createStore(EmptyModel);
     const Mock = jest.fn(() => {
-      const model = useStore(Store);
+      const model = useModel(Store);
       expect(model).toBeInstanceOf(EmptyModel);
       return null;
     }) as () => null;
@@ -55,10 +54,10 @@ describe('Store Tests', () => {
     expect(errorSpy!).not.toBeCalled();
   });
 
-  test('useStore() should not be provided with model instance without <Store.Provider>.', () => {
+  test('useModel() should not be provided with model instance without <Store.Provider>.', () => {
     const Store = createStore(EmptyModel);
     const Mock = jest.fn(() => {
-      expect(() => useStore(Store)).toThrow();
+      expect(() => useModel(Store)).toThrow();
       return null;
     }) as () => null;
     mount(
@@ -145,9 +144,9 @@ describe('Store Tests', () => {
 
   test('initialValue props of <Store.Provider> should provide createModel function with initial value.', () => {
     const INITIAL_VALUE = 'initial value';
-    const Store = createStore(HasInitailValueModel);
+    const Store = createStore(HasInitialValueModel);
     const Mock = jest.fn(() => {
-      const model = useStore(Store);
+      const model = useModel(Store);
       expect(model.value).toBe(INITIAL_VALUE);
       return null;
     }) as () => null;
@@ -239,7 +238,7 @@ describe('Store Tests', () => {
   test('State should get and set undefined value.', () => {
     const Store = createStore(UndefinableStateModel);
     const Mock = jest.fn(() => {
-      const model = useStore(Store);
+      const model = useModel(Store);
       let mountRender = false;
       React.useMemo(() => (mountRender = true), []);
       if (mountRender) {

@@ -96,6 +96,10 @@ Object.defineProperties(__META__, {
 
 // END DEVELOPMENT BLOCK
 
+function isConsumable(source: any): boolean {
+  return typeof source['consume'] === 'function';
+}
+
 function createEvent<TArgs extends any[]>(): Event<TArgs> {
   const listenerMap = new Map<Action<TArgs>, ModelBase | null>();
 
@@ -260,10 +264,27 @@ export abstract class ModelBase {
     return result;
   }
 
-  protected consume<TModel extends {}>(
-    consumable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
+  protected model<TModel extends {}, TValue>(
+    modelClass: ModelClass<TModel, TValue>,
+    initialValue: TValue
+  ): TModel;
+
+  protected model<TModel extends {}>(
+    consubable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
+  ): TModel;
+
+  protected model<TModel extends {}>(
+    source: ModelClass<TModel, any> | Consumable<TModel>,
+    initialValue?: any
   ): TModel {
-    return this.hook(() => consumable.consume());
+    if (isConsumable(source)) {
+      const consumable = source as Consumable<TModel>;
+      return this.hook(() => consumable.consume());
+    } else {
+      return arguments.length > 1
+        ? new (source as ModelClass<TModel, any>)(initialValue)
+        : new (source as ModelClass<TModel, void>)();
+    }
   }
 
   protected ref<T>(initialValue?: T): React.RefObject<T> {
@@ -468,22 +489,20 @@ function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
  * It is useful when nested components need to reference the model.
  * Every time <Store.Provider> is mounted, Store creates a model object.
  * <Store.Provider> provides the model object to nested components.
- * Then <Store.Consumer> or useStore(Store) can consume the model object.
+ * Then <Store.Consumer> or useModel(Store) can consume the model object.
  * @param modelClass
- * @returns Store
+ * @returns Store object
  */
-export function createStore<TModel extends {}, TValue = void>(
+export function createStore<TModel extends {}, TValue>(
   modelClass: ModelClass<TModel, TValue>
 ): Store<TModel, TValue> {
   const Context = React.createContext<Box<TModel> | null>(null);
 
   const Provider = (props: StoreProviderProps<TValue>) => {
-    const createModel = Object.prototype.hasOwnProperty.call(
-      props,
-      'initialValue'
-    )
-      ? () => new modelClass((props as { initialValue: TValue }).initialValue)
-      : () => new (modelClass as ModelClass<TModel, void>)();
+    const createModel =
+      'initialValue' in props
+        ? () => new modelClass((props as { initialValue: TValue }).initialValue)
+        : () => new (modelClass as ModelClass<TModel, void>)();
     const model = resolveModel(createModel);
     return React.createElement(
       Context.Provider,
@@ -532,15 +551,13 @@ export function createStore<TModel extends {}, TValue = void>(
 }
 
 /**
- * useStore returns a model object provided by Store.Provider element in functional component.
- * @param store is an object that implements Consumable interface.
+ * useModel returns a model object provided by Store.Provider element in functional component.
+ * @param consumable is an object that implements Consumable interface.
  * @returns model object
  */
-export function useStore<TModel extends {}>(
+export function useModel<TModel extends {}>(
   consumable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
-): TModel {
-  return consumable.consume();
-}
+): TModel;
 
 /**
  * useModel returns a model object related to functional component.
@@ -548,13 +565,23 @@ export function useStore<TModel extends {}>(
  * @param initialValue is passed to the model class constructor.
  * @returns model object
  */
-export function useModel<TModel extends {}, TValue = void>(
+export function useModel<TModel extends {}, TValue>(
   modelClass: ModelClass<TModel, TValue>,
-  initialValue?: TValue
+  initialValue: TValue
+): TModel;
+
+export function useModel<TModel extends {}>(
+  source: ModelClass<TModel, any> | Consumable<TModel>,
+  initialValue?: any
 ): TModel {
-  const createModel =
-    arguments.length > 1
-      ? () => new modelClass(initialValue!)
-      : () => new (modelClass as ModelClass<TModel, void>)();
-  return resolveModel(createModel);
+  if (isConsumable(source)) {
+    const consumable = source as Consumable<TModel>;
+    return consumable.consume();
+  } else {
+    const createModel =
+      arguments.length > 1
+        ? () => new (source as ModelClass<TModel, any>)(initialValue)
+        : () => new (source as ModelClass<TModel, void>)();
+    return resolveModel(createModel);
+  }
 }

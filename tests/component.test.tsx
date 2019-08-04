@@ -2,11 +2,12 @@ import React from 'react';
 import {
   SingleStateModel,
   SingleStatePureModel,
-  HasInitailValueModel,
+  HasInitialValueModel,
+  ParentModel2,
   IllegalHookMethodModel,
 } from './utils/models';
 import { mount } from 'enzyme';
-import { useModel, useStore, createStore } from '../src/react-model-store.dev';
+import { useModel, createStore } from '../src/react-model-store.dev';
 
 describe('Model Component Test', () => {
   let errorSpy: jest.SpyInstance | null = null;
@@ -49,7 +50,7 @@ describe('Model Component Test', () => {
   test('Should render a model component that has initialValue.', () => {
     const INITIAL_VALUE = 'initial value';
     const Mock = jest.fn((props: { initialValue: string }) => {
-      const model = useModel(HasInitailValueModel, props.initialValue);
+      const model = useModel(HasInitialValueModel, props.initialValue);
       return <div>{model.value}</div>;
     }) as (props: { initialValue: string }) => React.ReactElement;
     const wrapper = mount(<Mock initialValue={INITIAL_VALUE} />);
@@ -85,7 +86,7 @@ describe('Model Component Test', () => {
   test('Should create components that consume a model object.', () => {
     const Store = createStore(SingleStateModel);
     const Mock = jest.fn(() => {
-      const model = useStore(Store);
+      const model = useModel(Store);
       expect(model.value).toBeTruthy();
       return null;
     }) as () => null;
@@ -106,12 +107,15 @@ describe('Model Component Test', () => {
     const PureModelStore = createStore(SingleStatePureModel);
 
     const Mock = jest.fn((props: { initialValue: string }) => {
-      const model1 = useModel(HasInitailValueModel, props.initialValue);
-      const model2 = useStore(ModelStore);
-      const model3 = useStore(PureModelStore);
+      const model1 = useModel(HasInitialValueModel, props.initialValue);
+      const model2 = useModel(ParentModel2, props.initialValue);
+      const model3 = useModel(ModelStore);
+      const model4 = useModel(PureModelStore);
       expect(model1.value).toBe(INITIAL_VALUE);
-      expect(model2.value).toBe(true);
-      expect(model3.value()).toBe(true);
+      expect(model2.child1.value).toBe(INITIAL_VALUE);
+      expect(model2.child2.value).toBeTruthy();
+      expect(model3.value).toBe(true);
+      expect(model4.value()).toBe(true);
       return null;
     }) as (props: { initialValue: string }) => null;
 

@@ -40,7 +40,7 @@ class RootModel extends Model {
 }
 
 class ChatViewModel extends Model {
-  root = this.consume(RootModelStore);
+  root = this.model(RootModelStore);
   chats = this.state(this.root.chats);
 
   addChat = (_user: string, _message: string) => (this.chats = this.root.chats);
@@ -52,7 +52,7 @@ class ChatViewModel extends Model {
 }
 
 class ChatRoomModel extends Model {
-  root = this.consume(RootModelStore);
+  root = this.model(RootModelStore);
   chats = this.state<Chat[]>([]);
   isFocus: boolean;
   user: string;
