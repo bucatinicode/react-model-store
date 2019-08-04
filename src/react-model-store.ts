@@ -1,5 +1,5 @@
 /**
- * @license ReactModelStore v0.4.0-beta1
+ * @license ReactModelStore v0.4.0-beta2
  * (c) 2019 bucatini
  * License: MIT
  */
@@ -26,24 +26,6 @@ type InitialValue<TValue> = TValue extends void
   : unknown extends TValue
   ? { initialValue?: TValue }
   : { initialValue: TValue };
-
-export type ModelSource<TModel extends {} = any, TValue = any> =
-  | ModelClass<TModel, TValue>
-  | Consumable<TModel>;
-
-export type ModelType<
-  TModelSource extends ModelSource
-> = TModelSource extends ModelClass<infer TModel, any>
-  ? TModel
-  : TModelSource extends Consumable<infer TModel>
-  ? TModel
-  : never;
-
-export type ModelTuple<TModelSourceTuple extends ModelSource[]> = {
-  [TIndex in keyof TModelSourceTuple]: TModelSourceTuple[TIndex] extends ModelSource
-    ? ModelType<TModelSourceTuple[TIndex]>
-    : never
-};
 
 export type StoreProviderProps<TValue = void> = InitialValue<TValue> & {
   children?: React.ReactNode;
@@ -98,6 +80,10 @@ const listenerDependencyStore = new Map<
   ModelBase,
   Map<Action<any>, Event<any>>
 >();
+
+function isConsumable(source: any): boolean {
+  return typeof source['consume'] === 'function';
+}
 
 function createEvent<TArgs extends any[]>(): Event<TArgs> {
   const listenerMap = new Map<Action<TArgs>, ModelBase | null>();
@@ -255,16 +241,27 @@ export abstract class ModelBase {
     return result;
   }
 
-  protected consume<TModel extends {}, TValue>(
-    store: Store<TModel, TValue>
+  protected model<TModel extends {}, TValue>(
+    modelClass: ModelClass<TModel, TValue>,
+    initialValue: TValue
   ): TModel;
 
-  protected consume<TModel extends {}>(
-    consumable: StoreConsumer<TModel> | Consumable<TModel>
+  protected model<TModel extends {}>(
+    consubable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
   ): TModel;
 
-  protected consume<TModel extends {}>(consumable: Consumable<TModel>): TModel {
-    return this.hook(() => consumable.consume());
+  protected model<TModel extends {}>(
+    source: ModelClass<TModel, any> | Consumable<TModel>,
+    initialValue?: any
+  ): TModel {
+    if (isConsumable(source)) {
+      const consumable = source as Consumable<TModel>;
+      return this.hook(() => consumable.consume());
+    } else {
+      return arguments.length > 1
+        ? new (source as ModelClass<TModel, any>)(initialValue)
+        : new (source as ModelClass<TModel, void>)();
+    }
   }
 
   protected ref<T>(initialValue?: T): React.RefObject<T> {
@@ -469,22 +466,20 @@ function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
  * It is useful when nested components need to reference the model.
  * Every time <Store.Provider> is mounted, Store creates a model object.
  * <Store.Provider> provides the model object to nested components.
- * Then <Store.Consumer> or useStore(Store) can consume the model object.
+ * Then <Store.Consumer> or useModel(Store) can consume the model object.
  * @param modelClass
- * @returns Store
+ * @returns Store object
  */
-export function createStore<TModel extends {}, TValue = void>(
+export function createStore<TModel extends {}, TValue>(
   modelClass: ModelClass<TModel, TValue>
 ): Store<TModel, TValue> {
   const Context = React.createContext<Box<TModel> | null>(null);
 
   const Provider = (props: StoreProviderProps<TValue>) => {
-    const createModel = Object.prototype.hasOwnProperty.call(
-      props,
-      'initialValue'
-    )
-      ? () => new modelClass((props as { initialValue: TValue }).initialValue)
-      : () => new (modelClass as ModelClass<TModel, void>)();
+    const createModel =
+      'initialValue' in props
+        ? () => new modelClass((props as { initialValue: TValue }).initialValue)
+        : () => new (modelClass as ModelClass<TModel, void>)();
     const model = resolveModel(createModel);
     return React.createElement(
       Context.Provider,
@@ -533,28 +528,13 @@ export function createStore<TModel extends {}, TValue = void>(
 }
 
 /**
- * useStore returns a model object provided by Store.Provider element in functional component.
- * @param store is Store object
+ * useModel returns a model object provided by Store.Provider element in functional component.
+ * @param consumable is an object that implements Consumable interface.
  * @returns model object
  */
-export function useStore<TModel extends {}, TValue>(
-  store: Store<TModel, TValue>
+export function useModel<TModel extends {}>(
+  consumable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
 ): TModel;
-
-/**
- * useStore returns a model object provided by Store.Provider element in functional component.
- * @param consumable is an object that implements Consumable interface such as StoreConsumer.
- * @returns model object
- */
-export function useStore<TModel extends {}>(
-  consumable: StoreConsumer<TModel> | Consumable<TModel>
-): TModel;
-
-export function useStore<TModel extends {}>(
-  consumable: Consumable<TModel>
-): TModel {
-  return consumable.consume();
-}
 
 /**
  * useModel returns a model object related to functional component.
@@ -562,13 +542,23 @@ export function useStore<TModel extends {}>(
  * @param initialValue is passed to the model class constructor.
  * @returns model object
  */
-export function useModel<TModel extends {}, TValue = void>(
+export function useModel<TModel extends {}, TValue>(
   modelClass: ModelClass<TModel, TValue>,
-  initialValue?: TValue
+  initialValue: TValue
+): TModel;
+
+export function useModel<TModel extends {}>(
+  source: ModelClass<TModel, any> | Consumable<TModel>,
+  initialValue?: any
 ): TModel {
-  const createModel =
-    arguments.length > 1
-      ? () => new modelClass(initialValue!)
-      : () => new (modelClass as ModelClass<TModel, void>)();
-  return resolveModel(createModel);
+  if (isConsumable(source)) {
+    const consumable = source as Consumable<TModel>;
+    return consumable.consume();
+  } else {
+    const createModel =
+      arguments.length > 1
+        ? () => new (source as ModelClass<TModel, any>)(initialValue)
+        : () => new (source as ModelClass<TModel, void>)();
+    return resolveModel(createModel);
+  }
 }

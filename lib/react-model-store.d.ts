@@ -1,5 +1,5 @@
 /**
- * @license ReactModelStore v0.4.0-beta1
+ * @license ReactModelStore v0.4.0-beta2
  * (c) 2019 bucatini
  * License: MIT
  */
@@ -20,11 +20,6 @@ declare type InitialValue<TValue> = TValue extends void ? {} : unknown extends T
     initialValue?: TValue;
 } : {
     initialValue: TValue;
-};
-export declare type ModelSource<TModel extends {} = any, TValue = any> = ModelClass<TModel, TValue> | Consumable<TModel>;
-export declare type ModelType<TModelSource extends ModelSource> = TModelSource extends ModelClass<infer TModel, any> ? TModel : TModelSource extends Consumable<infer TModel> ? TModel : never;
-export declare type ModelTuple<TModelSourceTuple extends ModelSource[]> = {
-    [TIndex in keyof TModelSourceTuple]: TModelSourceTuple[TIndex] extends ModelSource ? ModelType<TModelSourceTuple[TIndex]> : never;
 };
 export declare type StoreProviderProps<TValue = void> = InitialValue<TValue> & {
     children?: React.ReactNode;
@@ -48,8 +43,8 @@ export declare abstract class ModelBase {
     protected onMount(): void;
     protected onUnmount(): void;
     protected hook<T = void>(useHook: () => T): T;
-    protected consume<TModel extends {}, TValue>(store: Store<TModel, TValue>): TModel;
-    protected consume<TModel extends {}>(consumable: StoreConsumer<TModel> | Consumable<TModel>): TModel;
+    protected model<TModel extends {}, TValue>(modelClass: ModelClass<TModel, TValue>, initialValue: TValue): TModel;
+    protected model<TModel extends {}>(consubable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>): TModel;
     protected ref<T>(initialValue?: T): React.RefObject<T>;
     protected event(): Event<[]>;
     protected event<TArgs extends any[]>(listener?: Action<TArgs>): Event<TArgs>;
@@ -140,29 +135,23 @@ export declare abstract class Model extends ModelBase {
  * It is useful when nested components need to reference the model.
  * Every time <Store.Provider> is mounted, Store creates a model object.
  * <Store.Provider> provides the model object to nested components.
- * Then <Store.Consumer> or useStore(Store) can consume the model object.
+ * Then <Store.Consumer> or useModel(Store) can consume the model object.
  * @param modelClass
- * @returns Store
+ * @returns Store object
  */
-export declare function createStore<TModel extends {}, TValue = void>(modelClass: ModelClass<TModel, TValue>): Store<TModel, TValue>;
+export declare function createStore<TModel extends {}, TValue>(modelClass: ModelClass<TModel, TValue>): Store<TModel, TValue>;
 /**
- * useStore returns a model object provided by Store.Provider element in functional component.
- * @param store is Store object
+ * useModel returns a model object provided by Store.Provider element in functional component.
+ * @param consumable is an object that implements Consumable interface.
  * @returns model object
  */
-export declare function useStore<TModel extends {}, TValue>(store: Store<TModel, TValue>): TModel;
-/**
- * useStore returns a model object provided by Store.Provider element in functional component.
- * @param consumable is an object that implements Consumable interface such as StoreConsumer.
- * @returns model object
- */
-export declare function useStore<TModel extends {}>(consumable: StoreConsumer<TModel> | Consumable<TModel>): TModel;
+export declare function useModel<TModel extends {}>(consumable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>): TModel;
 /**
  * useModel returns a model object related to functional component.
  * @param modelClass is model class constructor
  * @param initialValue is passed to the model class constructor.
  * @returns model object
  */
-export declare function useModel<TModel extends {}, TValue = void>(modelClass: ModelClass<TModel, TValue>, initialValue?: TValue): TModel;
+export declare function useModel<TModel extends {}, TValue>(modelClass: ModelClass<TModel, TValue>, initialValue: TValue): TModel;
 export {};
 //# sourceMappingURL=react-model-store.d.ts.map
