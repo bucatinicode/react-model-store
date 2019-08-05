@@ -35,7 +35,7 @@ export class ParentModel {
 }
 
 export class IllegalHookModel extends Model {
-  value = this.stateFunc(() => true);
+  value = this.stateFunc(true);
   illegalHook = React.useState(true);
 }
 

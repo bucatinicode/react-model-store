@@ -174,7 +174,7 @@ function createEvent<TArgs extends any[]>(): Event<TArgs> {
 
 function createStateAccessor<T extends any>(
   meta: Meta,
-  initialValue: T | (() => T),
+  initialValue: T,
   finalizeRequired: boolean
 ): Accessor<T> {
   if (meta.finalized) {
@@ -183,10 +183,7 @@ function createStateAccessor<T extends any>(
     );
   }
 
-  let state =
-    typeof initialValue === 'function'
-      ? (initialValue as () => T)()
-      : initialValue;
+  let state = initialValue;
   let setState = React.useState(state)[1];
   meta.hooks.push(() => {
     setState = React.useState(state)[1];
@@ -264,13 +261,18 @@ export abstract class ModelBase {
     return result;
   }
 
-  protected model<TModel extends {}, TValue>(
-    modelClass: ModelClass<TModel, TValue>,
-    initialValue: TValue
+  protected model<TModel extends {}>(
+    consubable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
   ): TModel;
 
   protected model<TModel extends {}>(
-    consubable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
+    // tslint:disable-next-line: unified-signatures
+    modelClass: ModelClass<TModel, void>
+  ): TModel;
+
+  protected model<TModel extends {}, TValue>(
+    modelClass: ModelClass<TModel, TValue>,
+    initialValue: TValue
   ): TModel;
 
   protected model<TModel extends {}>(
@@ -360,9 +362,9 @@ export abstract class PureModel extends ModelBase {
    *   readonly increment = () => this._count(this.count + 1);
    * }
    *
-   * @param initialValue an initial value or a function that returns it.
+   * @param initialValue
    */
-  protected state<T extends any>(initialValue: T | (() => T)): Accessor<T> {
+  protected state<T extends any>(initialValue: T): Accessor<T> {
     return createStateAccessor(
       (this as any)._meta as Meta,
       initialValue,
@@ -403,9 +405,9 @@ export abstract class Model extends ModelBase {
    *   readonly increment = () => this.count = this.count + 1;
    * }
    *
-   * @param initialValue an initial value or a function that returns it.
+   * @param initialValue
    */
-  protected state<T extends any>(initialValue: T | (() => T)): T {
+  protected state<T extends any>(initialValue: T): T {
     return (createStateAccessor(
       (this as any)._meta as Meta,
       initialValue,
@@ -426,9 +428,9 @@ export abstract class Model extends ModelBase {
    *   readonly increment = () => this._count(this.count + 1);
    * }
    *
-   * @param initialValue an initial value or a function that returns it.
+   * @param initialValue
    */
-  protected stateFunc<T extends any>(initialValue: T | (() => T)): Accessor<T> {
+  protected stateFunc<T extends any>(initialValue: T): Accessor<T> {
     return createStateAccessor(
       (this as any)._meta as Meta,
       initialValue,
@@ -557,6 +559,16 @@ export function createStore<TModel extends {}, TValue>(
  */
 export function useModel<TModel extends {}>(
   consumable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
+): TModel;
+
+/**
+ * useModel returns a model object related to functional component.
+ * @param modelClass is model class constructor
+ * @returns model object
+ */
+export function useModel<TModel extends {}>(
+  // tslint:disable-next-line: unified-signatures
+  modelClass: ModelClass<TModel, void>
 ): TModel;
 
 /**
