@@ -217,7 +217,7 @@ export abstract class ModelBase {
   constructor() {
     if (!current.meta) {
       throw new Error(
-        'ModelBase constructor must be called from Provider of Store created by createStore() or Component created by createComponent().'
+        'ModelBase constructor must be called from useModel() or Provider of Store created by createStore().'
       );
     }
     this._meta = current.meta;
