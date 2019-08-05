@@ -262,7 +262,7 @@ export abstract class ModelBase {
   }
 
   protected model<TModel extends {}>(
-    consubable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
+    consumable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
   ): TModel;
 
   protected model<TModel extends {}>(
