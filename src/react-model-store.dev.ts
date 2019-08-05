@@ -14,16 +14,24 @@ export type ModelClass<TModel extends {}, TValue> = TValue extends void
   : {
       new (initialValue: TValue): TModel;
     };
+export type InferModel<
+  TModelClass extends ModelClass<any, any>
+> = TModelClass extends { new (initialValue?: any): infer T } ? T : never;
+export type InferValue<
+  TModelClass extends ModelClass<any, any>
+> = TModelClass extends { new (): any }
+  ? TModelClass extends { new (initialValue?: infer T): any }
+    ? unknown extends T
+      ? void
+      : T | void
+    : never
+  : TModelClass extends { new (initialValue: infer T): any }
+  ? T
+  : never;
 
-type InitialValue<TValue> = TValue extends void
+export type StoreProviderProps<TValue> = (TValue extends void
   ? {}
-  : unknown extends TValue
-  ? { initialValue?: TValue }
-  : { initialValue: TValue };
-
-export type StoreProviderProps<TValue = void> = InitialValue<TValue> & {
-  children?: React.ReactNode;
-};
+  : { initialValue: TValue }) & { children?: React.ReactNode };
 
 export interface StoreConsumerProps<TModel extends {}> {
   children: (model: TModel) => React.ReactNode;
@@ -33,7 +41,7 @@ export interface Consumable<TModel extends {}> {
   consume(): TModel;
 }
 
-export type StoreProvider<TValue = void> = React.FunctionComponent<
+export type StoreProvider<TValue> = React.FunctionComponent<
   StoreProviderProps<TValue>
 >;
 export type StoreConsumer<TModel extends {}> = React.FunctionComponent<
@@ -41,8 +49,7 @@ export type StoreConsumer<TModel extends {}> = React.FunctionComponent<
 > &
   Consumable<TModel>;
 
-export interface Store<TModel extends {}, TValue = void>
-  extends Consumable<TModel> {
+export interface Store<TModel extends {}, TValue> extends Consumable<TModel> {
   readonly Provider: StoreProvider<TValue>;
   readonly Consumer: StoreConsumer<TModel>;
 }
@@ -265,15 +272,14 @@ export abstract class ModelBase {
     consumable: Store<TModel, any> | StoreConsumer<TModel> | Consumable<TModel>
   ): TModel;
 
-  protected model<TModel extends {}>(
-    // tslint:disable-next-line: unified-signatures
-    modelClass: ModelClass<TModel, void>
-  ): TModel;
+  protected model<TModelClass extends ModelClass<any, void>>(
+    modelClass: TModelClass
+  ): InferModel<TModelClass>;
 
-  protected model<TModel extends {}, TValue>(
-    modelClass: ModelClass<TModel, TValue>,
-    initialValue: TValue
-  ): TModel;
+  protected model<TModelClass extends ModelClass<any, any>>(
+    modelClass: TModelClass,
+    initialValue: InferValue<TModelClass>
+  ): InferModel<TModelClass>;
 
   protected model<TModel extends {}>(
     source: ModelClass<TModel, any> | Consumable<TModel>,
@@ -495,9 +501,11 @@ function resolveModel<TModel extends {}>(createModel: () => TModel): TModel {
  * @param modelClass
  * @returns Store object
  */
-export function createStore<TModel extends {}, TValue>(
-  modelClass: ModelClass<TModel, TValue>
-): Store<TModel, TValue> {
+export function createStore<TModelClass extends ModelClass<any, any>>(
+  modelClass: TModelClass
+): Store<InferModel<TModelClass>, InferValue<TModelClass>> {
+  type TModel = InferModel<TModelClass>;
+  type TValue = InferValue<TModelClass>;
   const Context = React.createContext<Box<TModel> | null>(null);
 
   const Provider = (props: StoreProviderProps<TValue>) => {
@@ -566,10 +574,9 @@ export function useModel<TModel extends {}>(
  * @param modelClass is model class constructor
  * @returns model object
  */
-export function useModel<TModel extends {}>(
-  // tslint:disable-next-line: unified-signatures
-  modelClass: ModelClass<TModel, void>
-): TModel;
+export function useModel<TModelClass extends ModelClass<any, void>>(
+  modelClass: TModelClass
+): InferModel<TModelClass>;
 
 /**
  * useModel returns a model object related to functional component.
@@ -577,10 +584,10 @@ export function useModel<TModel extends {}>(
  * @param initialValue is passed to the model class constructor.
  * @returns model object
  */
-export function useModel<TModel extends {}, TValue>(
-  modelClass: ModelClass<TModel, TValue>,
-  initialValue: TValue
-): TModel;
+export function useModel<TModelClass extends ModelClass<any, any>>(
+  modelClass: TModelClass,
+  initialValue: InferValue<TModelClass>
+): InferModel<TModelClass>;
 
 export function useModel<TModel extends {}>(
   source: ModelClass<TModel, any> | Consumable<TModel>,
