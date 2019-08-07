@@ -3,7 +3,7 @@ import 'react-app-polyfill/stable';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Model, createComponent } from '../src/react-model-store';
+import { Model, useModel } from '../src/react-model-store';
 
 class CounterModel extends Model {
   count: number = this.state(0);
@@ -15,9 +15,9 @@ class CounterModel extends Model {
   decrement = () => setTimeout(() => this.count--, 1000);
 }
 
-const Counter = createComponent(
-  CounterModel,
-  ({ count, increment, decrement }) => (
+const Counter = () => {
+  const { count, increment, decrement } = useModel(CounterModel);
+  return (
     <div>
       <p>Count: {count}</p>
       <div>
@@ -25,8 +25,8 @@ const Counter = createComponent(
         <button onClick={decrement}>Decrement</button>
       </div>
     </div>
-  )
-);
+  );
+};
 
 ReactDOM.render(
   <div>
