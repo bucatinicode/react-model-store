@@ -511,7 +511,10 @@ export function createStore<TModelClass extends ModelClass<any, any>>(
   const Provider = (props: StoreProviderProps<TValue>) => {
     const createModel =
       'initialValue' in props
-        ? () => new modelClass((props as { initialValue: TValue }).initialValue)
+        ? () =>
+            new (modelClass as ModelClass<TModel, any>)(
+              (props as { initialValue: TValue }).initialValue
+            )
         : () => new (modelClass as ModelClass<TModel, void>)();
     const model = resolveModel(createModel);
     return React.createElement(
