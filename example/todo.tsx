@@ -3,7 +3,7 @@ import 'react-app-polyfill/stable';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Model, createStore, createComponent } from '../src/react-model-store';
+import { Model, createStore, useModel } from '../src/react-model-store';
 
 interface Todo {
   key: number;
@@ -74,32 +74,37 @@ class TodoModel extends Model {
   constructor(todo: Todo) {
     super();
     this.todo = todo;
-    const { logic } = this.use(RootModelStore);
+    const { logic } = this.model(RootModelStore);
     this.onRemoveClick = logic.remove.bind(logic, todo.key);
   }
 }
 
 const RootModelStore = createStore(RootModel);
 
-const ControlPanel = createComponent(
-  RootModelStore,
-  ({ control: { textInput, onAddClick, onKeyPress } }) => (
+const ControlPanel = () => {
+  const {
+    control: { textInput, onAddClick, onKeyPress },
+  } = useModel(RootModelStore);
+  return (
     <div>
       <input type='text' ref={textInput} onKeyPress={onKeyPress} />
       <button onClick={onAddClick}>Add</button>
     </div>
-  )
-);
+  );
+};
 
-const TodoItem = createComponent(
-  TodoModel,
-  ({ todo: { text }, onRemoveClick }) => (
+const TodoItem = (props: { todo: Todo }) => {
+  const {
+    todo: { text },
+    onRemoveClick,
+  } = useModel(TodoModel, props.todo);
+  return (
     <li>
       <button onClick={onRemoveClick}>Remove</button>
       <span>{text}</span>
     </li>
-  )
-);
+  );
+};
 
 const App = () => (
   <RootModelStore.Provider>
@@ -110,7 +115,7 @@ const App = () => (
           {({ logic: { todos } }) =>
             todos.map(todo => (
               <li>
-                <TodoItem key={todo.key} initialValue={todo} />
+                <TodoItem key={todo.key} todo={todo} />
               </li>
             ))
           }
